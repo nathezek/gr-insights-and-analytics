@@ -3,9 +3,12 @@
         "accx",
         "arctan",
         "chunksize",
+        "cota",
+        "dedup",
         "importances",
         "lapdist",
         "Laptrigger",
-        "pbrake"
+        "pbrake",
+        "sonoma"
     ]
 }
