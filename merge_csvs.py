@@ -134,14 +134,14 @@ def time_to_seconds(t) -> float:
 
 
 paths = {
-    "results": "./raw_training_data/cota/Race_1/03_Provisional Results_Race 1.CSV",
-    "telemetry": "./raw_training_data/cota/Race_1/R1_COTA_telemetry_data.csv",
-    "weather": "./raw_training_data/cota/Race_1/26_Weather_Race 1.CSV",
-    "analysis": "./raw_training_data/cota/Race_1/23_AnalysisEnduranceWithSections_Race 1.CSV",
-    "best_laps": "./raw_training_data/cota/Race_1/99_Best 10 Laps By Driver_Race 1.CSV",
-    "lap_start": "./raw_training_data/cota/Race_1/R1_COTA_lap_start.csv",
-    "lap_time": "./raw_training_data/cota/Race_1/R1_COTA_lap_time.csv",
-    "lap_end": "./raw_training_data/cota/Race_1/R1_COTA_lap_end.csv",
+    "results": "./raw_training_data/cota/Race_2/03_Provisional Results_Race 2.CSV",
+    "telemetry": "./raw_training_data/cota/Race_2/R2_COTA_telemetry_data.csv",
+    "weather": "./raw_training_data/cota/Race_2/26_Weather_Race 2.CSV",
+    "analysis": "./raw_training_data/cota/Race_2/23_AnalysisEnduranceWithSections_Race 2.CSV",
+    "best_laps": "./raw_training_data/cota/Race_2/99_Best 10 Laps By Driver_ Race 2.CSV",
+    "lap_start": "./raw_training_data/cota/Race_2/R2_COTA_lap_start.csv",
+    "lap_time": "./raw_training_data/cota/Race_2/R2_COTA_lap_time.csv",
+    "lap_end": "./raw_training_data/cota/Race_2/R2_COTA_lap_end.csv",
 }
 
 print("=" * 60)
@@ -386,7 +386,7 @@ if final_size > original_size * 1.3:
     print(f"  After dedup: {merged.shape}")
 
 # Save
-output_path = "processed_data/merged_r5.csv"
+output_path = "processed_data/merged_r7.csv"
 print(f"\n[INFO] Saving to {output_path}...")
 merged.to_csv(output_path, index=False)
 
@@ -395,4 +395,3 @@ print(f"Final shape: {merged.shape}")
 print(f"Columns ({len(merged.columns)}): {list(merged.columns[:40])} ...")
 
 gc.collect()
-
