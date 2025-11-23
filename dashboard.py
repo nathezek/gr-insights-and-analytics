@@ -1,6 +1,7 @@
 import streamlit as st
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 import pandas as pd
 import numpy as np
 import gc
@@ -9,33 +10,50 @@ from data_cleanup import clean_telemetry, clean_results, join_datasets
 from ai_magic import get_model, predict_mistakes
 
 st.set_page_config(page_title="GAZOO Analyst", layout="wide")
+
+# Custom CSS for better styling
+st.markdown("""
+    <style>
+    .main {
+        padding: 0rem 1rem;
+    }
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 2px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        padding-left: 20px;
+        padding-right: 20px;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 st.title("🏎️ GAZOO Analyst: AI-Powered Race Analysis")
 
 # Sidebar configuration
 st.sidebar.header("⚙️ Settings")
 
-# Memory/Performance settings - REDUCED DEFAULTS TO PREVENT CRASHES
+# Memory/Performance settings
 max_telemetry_rows = st.sidebar.select_slider(
-    "Max Telemetry Rows (prevents crashes)",
+    "Max Telemetry Rows",
     options=[50000, 100000, 250000, 500000],
-    value=100000,  # Reduced from 500000
-    help="Larger files will be sampled to this size. Start small if experiencing crashes."
+    value=100000,
+    help="Maximum rows to process"
 )
 
-# Sample fraction for long-format data
 sample_frac = st.sidebar.select_slider(
-    "Data Sample % (for large files)",
+    "Data Sample %",
     options=[0.05, 0.10, 0.20, 0.50],
     value=0.10,
     format_func=lambda x: f"{int(x*100)}%",
-    help="For 11M+ row files, use smaller % to prevent crashes. 10% = ~1M rows before pivot."
+    help="Percentage of data to sample for large files"
 )
 
 chunk_size = st.sidebar.select_slider(
     "AI Processing Speed",
     options=[5000, 10000, 20000, 50000],
     value=10000,
-    help="Larger = faster but uses more memory"
+    help="Processing chunk size"
 )
 
 # Load model
@@ -63,54 +81,35 @@ raw_data = upload_data()
 if raw_data:
     
     # Show upload info
-    with st.expander("📁 Uploaded Files Info"):
+    with st.expander("📁 Uploaded Files Info", expanded=False):
         for key, df in raw_data.items():
             if df is not None:
                 st.write(f"**{key.title()}**: {len(df):,} rows × {len(df.columns)} columns")
                 
-                # Show sample columns (helps with debugging)
-                if len(df.columns) <= 20:
-                    st.write(f"Columns: `{', '.join(list(df.columns))}`")
-                else:
-                    st.write(f"First 20 columns: `{', '.join(list(df.columns)[:20])}`")
-                
-                # Check if long-format data
                 if 'telemetry_name' in df.columns and 'telemetry_value' in df.columns:
                     st.info(f"ℹ️ {key} is in long-format (will be pivoted)")
                     unique_metrics = df['telemetry_name'].nunique()
                     st.write(f"Contains {unique_metrics} different metrics")
-                    
-                    # Show sample metrics
-                    sample_metrics = df['telemetry_name'].unique()[:20]
-                    st.write(f"Sample metrics: `{', '.join(sample_metrics)}`")
-                    
-                    # Calculate expected size after pivot
-                    estimated_after_pivot = int(len(df) * sample_frac / unique_metrics)
-                    st.write(f"Estimated rows after {int(sample_frac*100)}% sample + pivot: ~{estimated_after_pivot:,}")
                 
-                # Warn if very large
                 if len(df) > max_telemetry_rows:
-                    st.warning(f"⚠️ {key} has {len(df):,} rows. Will be sampled to {max_telemetry_rows:,}")
+                    st.warning(f"⚠️ Will be sampled to {max_telemetry_rows:,} rows")
     
     # Processing with progress
     progress_bar = st.progress(0)
     status_text = st.empty()
     
     try:
-        # Clean telemetry (with automatic sampling and pivoting)
         status_text.text("🔧 Cleaning telemetry data...")
         progress_bar.progress(20)
         
         cleaned_telemetry = clean_telemetry(
             raw_data["telemetry"], 
             max_rows=max_telemetry_rows,
-            sample_frac=sample_frac  # Pass sample fraction
+            sample_frac=sample_frac
         )
         
-        # Force garbage collection
         gc.collect()
         
-        # Clean results
         status_text.text("🔧 Cleaning results...")
         progress_bar.progress(40)
         
@@ -120,8 +119,7 @@ if raw_data:
         
         raw_data["telemetry"] = cleaned_telemetry
         
-        # Join datasets (memory-safe)
-        status_text.text("🔗 Merging datasets (memory-safe mode)...")
+        status_text.text("🔗 Merging datasets...")
         progress_bar.progress(60)
         
         all_cleaned = join_datasets(
@@ -129,7 +127,6 @@ if raw_data:
             max_merged_rows=max_telemetry_rows
         )
         
-        # Force garbage collection
         gc.collect()
         
         progress_bar.progress(100)
@@ -137,57 +134,31 @@ if raw_data:
         
         st.success(f"✅ Ready to analyze: {len(all_cleaned):,} data points")
         
-        # Show memory usage
-        memory_mb = all_cleaned.memory_usage(deep=True).sum() / 1024**2
-        st.info(f"💾 Current memory usage: {memory_mb:.1f} MB")
-        
     except Exception as e:
         st.error(f"❌ Error processing data: {e}")
         with st.expander("🐛 Debug Info"):
             st.write(f"**Error:** {str(e)}")
-            
-            # Show what columns we found
-            if "telemetry" in raw_data and raw_data["telemetry"] is not None:
-                st.write("**Your telemetry columns:**")
-                st.code(', '.join(list(raw_data["telemetry"].columns)))
-                
-                if 'telemetry_name' in raw_data["telemetry"].columns:
-                    st.write("**Your telemetry metrics:**")
-                    metrics = raw_data["telemetry"]['telemetry_name'].unique()
-                    st.code(', '.join(list(metrics)[:50]))
-            
             import traceback
             st.code(traceback.format_exc())
-        
-        st.info("""
-        💡 **Troubleshooting:**
-        - Try reducing 'Data Sample %' to 5%
-        - Try reducing 'Max Telemetry Rows' to 50,000
-        - Check that your data includes speed measurements
-        - Restart the dashboard if it's frozen
-        - Close other applications to free up memory
-        """)
         st.stop()
         
     finally:
         progress_bar.empty()
         status_text.empty()
     
-    # Validate critical columns (lightweight - no data copying)
+    # Validate critical columns
     if 'speed' not in all_cleaned.columns:
-        st.error("❌ 'speed' column not found in processed data")
-        st.info(f"Available columns: {', '.join(list(all_cleaned.columns)[:20])}")
+        st.error("❌ 'speed' column not found")
         st.stop()
     
     if 'lap' not in all_cleaned.columns:
-        st.error("❌ 'lap' column not found in processed data")
-        st.info(f"Available columns: {', '.join(list(all_cleaned.columns)[:20])}")
+        st.error("❌ 'lap' column not found")
         st.stop()
     
     # Filters
     st.sidebar.header("🔍 Filters")
     
-    # Lap selection - Fix data type
+    # Lap selection
     try:
         all_cleaned['lap'] = pd.to_numeric(all_cleaned['lap'], errors='coerce')
         all_cleaned = all_cleaned.dropna(subset=['lap'])
@@ -204,14 +175,10 @@ if raw_data:
     
     selected_lap = st.sidebar.selectbox("Select Lap", available_laps)
     
-    # Filter by lap FIRST (reduce data early)
+    # Filter by lap
     lap_data = all_cleaned[all_cleaned['lap'] == selected_lap].copy()
     
-    # Free memory
-    del all_cleaned
-    gc.collect()
-    
-    # Vehicle selection (on already filtered data)
+    # Vehicle selection
     if 'vehicle_number' in lap_data.columns:
         available_vehicles = sorted(lap_data['vehicle_number'].dropna().unique())
         if len(available_vehicles) > 1:
@@ -220,37 +187,56 @@ if raw_data:
         elif len(available_vehicles) == 1:
             st.sidebar.info(f"Vehicle: {available_vehicles[0]}")
     
+    # Comparison lap (for best vs worst)
+    if len(available_laps) > 1:
+        comparison_lap = st.sidebar.selectbox(
+            "Compare with Lap (optional)",
+            options=[None] + available_laps,
+            format_func=lambda x: "None" if x is None else str(x)
+        )
+    else:
+        comparison_lap = None
+    
+    # Free memory
+    comparison_lap_data = None
+    if comparison_lap is not None and comparison_lap != selected_lap:
+        comparison_lap_data = all_cleaned[all_cleaned['lap'] == comparison_lap].copy()
+        if 'vehicle_number' in comparison_lap_data.columns and 'vehicle_number' in lap_data.columns:
+            vehicle_nums = lap_data['vehicle_number'].dropna().unique()
+            if len(vehicle_nums) == 1:
+                comparison_lap_data = comparison_lap_data[comparison_lap_data['vehicle_number'] == vehicle_nums[0]]
+    
+    del all_cleaned
+    gc.collect()
+    
     # Check if lap_data is empty
     if len(lap_data) == 0:
         st.error(f"❌ No data found for Lap {selected_lap}")
-        st.info("💡 Try selecting a different lap")
-        if len(available_laps) > 0:
-            st.sidebar.write(f"**Available laps:** {available_laps[:10]}")
         st.stop()
     
-    # Verify speed column exists in filtered data
     if 'speed' not in lap_data.columns:
-        st.error("❌ 'speed' column missing from lap data")
+        st.error("❌ 'speed' column missing")
         st.stop()
     
     # Show selection metrics
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     col1.metric("Lap", selected_lap)
     col2.metric("Data Points", f"{len(lap_data):,}")
     col3.metric("Memory", f"{lap_data.memory_usage(deep=True).sum() / 1024**2:.1f} MB")
+    
+    # Calculate lap time if available
+    if 'timestamp' in lap_data.columns:
+        lap_duration = (lap_data['timestamp'].max() - lap_data['timestamp'].min()).total_seconds()
+        col4.metric("Lap Time", f"{lap_duration:.2f}s")
+    else:
+        col4.metric("Lap Time", "N/A")
     
     # Threshold
     threshold = st.sidebar.slider("Mistake Threshold (km/h)", 5, 20, 10)
     
     # Analysis button
-    if st.button("🔮 Run AI Analysis", type="primary"):
+    if st.button("🔮 Run AI Analysis", type="primary", use_container_width=True):
         
-        # Final check
-        if 'speed' not in lap_data.columns:
-            st.error("❌ 'speed' column required")
-            st.stop()
-        
-        # Check lap data size
         if len(lap_data) > 100000:
             st.warning(f"⚠️ Large lap ({len(lap_data):,} points). This may take a moment...")
         
@@ -272,15 +258,12 @@ if raw_data:
             analysis_progress.progress(100)
             analysis_status.text("✅ Complete!")
             
-            # Free memory
             gc.collect()
             
         except Exception as e:
             st.error(f"❌ Analysis failed: {e}")
             with st.expander("🐛 Debug"):
                 st.write(f"**Error:** {str(e)}")
-                st.write(f"**Lap data shape:** {lap_data.shape}")
-                st.write(f"**Columns:** {list(lap_data.columns)[:30]}")
                 import traceback
                 st.code(traceback.format_exc())
             st.stop()
@@ -289,97 +272,236 @@ if raw_data:
             analysis_progress.empty()
             analysis_status.empty()
         
-        # Display insights
+        # AI Insights at top
         st.header("🧠 AI Insights")
-        for insight in insights:
-            st.info(insight)
         
-        # Tabs
-        tab1, tab2, tab3, tab4 = st.tabs([
-            "📍 Track Map", 
-            "📊 Speed Analysis", 
-            "⚠️ Mistakes", 
-            "📈 Details"
+        # Display insights in columns
+        num_insights = len(insights)
+        if num_insights > 0:
+            cols_per_row = min(3, num_insights)
+            rows_needed = (num_insights + cols_per_row - 1) // cols_per_row
+            
+            for row in range(rows_needed):
+                cols = st.columns(cols_per_row)
+                for col_idx in range(cols_per_row):
+                    insight_idx = row * cols_per_row + col_idx
+                    if insight_idx < num_insights:
+                        with cols[col_idx]:
+                            st.info(insights[insight_idx])
+        
+        # Main Tabs
+        tab1, tab2, tab3, tab4, tab5 = st.tabs([
+            "📊 Telemetry Overview",
+            "🎯 AI Analysis", 
+            "📍 Sector Analysis",
+            "🏁 Lap Comparison",
+            "📈 Export & Details"
         ])
         
+        # ======================
+        # TAB 1: TELEMETRY OVERVIEW
+        # ======================
         with tab1:
-            st.subheader("Track Map")
+            st.subheader("Complete Telemetry Analysis")
             
-            if 'VBOX_Lat_Min' in predicted_data.columns and 'VBOX_Long_Minutes' in predicted_data.columns:
-                map_data = predicted_data.dropna(subset=['VBOX_Lat_Min', 'VBOX_Long_Minutes'])
-                
-                # Downsample for performance
-                if len(map_data) > 5000:
-                    map_data = map_data.iloc[::len(map_data)//5000]
-                
-                if len(map_data) > 0:
-                    fig_map = px.scatter_mapbox(
-                        map_data,
-                        lat="VBOX_Lat_Min",
-                        lon="VBOX_Long_Minutes",
-                        color="mistake_severity",
-                        color_continuous_scale="RdYlGn_r",
-                        hover_data=['speed', 'predicted_speed'],
-                        zoom=13,
-                        height=600,
-                    )
-                    fig_map.update_layout(mapbox_style="open-street-map")
-                    st.plotly_chart(fig_map, use_container_width=True)
-                else:
-                    st.warning("⚠️ No valid GPS coordinates")
+            # Prepare x-axis
+            if 'Laptrigger_lapdist_dls' in predicted_data.columns:
+                x_axis = predicted_data['Laptrigger_lapdist_dls']
+                x_label = 'Distance (m)'
             else:
-                st.warning("⚠️ GPS data not available")
-                st.info("Available GPS columns might have different names. Check your data.")
-        
-        with tab2:
-            st.subheader("Speed Comparison")
+                x_axis = predicted_data.index
+                x_label = 'Sample Index'
             
             # Downsample for plotting
             plot_data = predicted_data.copy()
             if len(plot_data) > 10000:
-                st.caption(f"📊 Showing 10,000 of {len(plot_data):,} points for performance")
-                plot_data = plot_data.iloc[::len(plot_data)//10000]
+                st.caption(f"📊 Displaying 10,000 of {len(plot_data):,} points for performance")
+                step = len(plot_data) // 10000
+                plot_data = plot_data.iloc[::step].copy()
+                if 'Laptrigger_lapdist_dls' in plot_data.columns:
+                    x_axis = plot_data['Laptrigger_lapdist_dls'].values
+                else:
+                    x_axis = plot_data.index.values
             
-            x_axis = plot_data['Laptrigger_lapdist_dls'] if 'Laptrigger_lapdist_dls' in plot_data.columns else plot_data.index
-            x_label = 'Distance (m)' if 'Laptrigger_lapdist_dls' in plot_data.columns else 'Sample Index'
+            # Create subplots
+            available_channels = []
+            if 'speed' in plot_data.columns:
+                available_channels.append('speed')
+            if 'gear' in plot_data.columns:
+                available_channels.append('gear')
+            if 'aps' in plot_data.columns:
+                available_channels.append('aps')
+            if 'pbrake_f' in plot_data.columns or 'pbrake_r' in plot_data.columns:
+                available_channels.append('brake')
+            if 'Steering_Angle' in plot_data.columns:
+                available_channels.append('steering')
             
+            num_plots = len(available_channels)
+            
+            if num_plots > 0:
+                fig = make_subplots(
+                    rows=num_plots, 
+                    cols=1,
+                    shared_xaxes=True,
+                    vertical_spacing=0.05,
+                    subplot_titles=[ch.upper() for ch in available_channels],
+                    row_heights=[1] * num_plots
+                )
+                
+                row = 1
+                
+                # Speed
+                if 'speed' in available_channels:
+                    fig.add_trace(
+                        go.Scatter(x=x_axis, y=plot_data['speed'].values, 
+                                  name='Speed', line=dict(color='#1f77b4', width=2)),
+                        row=row, col=1
+                    )
+                    fig.update_yaxes(title_text="Speed (km/h)", row=row, col=1)
+                    row += 1
+                
+                # Gear
+                if 'gear' in available_channels:
+                    fig.add_trace(
+                        go.Scatter(x=x_axis, y=plot_data['gear'].values, 
+                                  name='Gear', line=dict(color='#ff7f0e', width=2),
+                                  mode='lines+markers', marker=dict(size=3)),
+                        row=row, col=1
+                    )
+                    fig.update_yaxes(title_text="Gear", row=row, col=1)
+                    row += 1
+                
+                # Throttle
+                if 'aps' in available_channels:
+                    fig.add_trace(
+                        go.Scatter(x=x_axis, y=plot_data['aps'].values, 
+                                  name='Throttle', line=dict(color='#2ca02c', width=2)),
+                        row=row, col=1
+                    )
+                    fig.update_yaxes(title_text="Throttle (%)", row=row, col=1)
+                    row += 1
+                
+                # Brakes
+                if 'brake' in available_channels:
+                    if 'pbrake_f' in plot_data.columns:
+                        fig.add_trace(
+                            go.Scatter(x=x_axis, y=plot_data['pbrake_f'].values, 
+                                      name='Brake Front', line=dict(color='#d62728', width=2)),
+                            row=row, col=1
+                        )
+                    if 'pbrake_r' in plot_data.columns:
+                        fig.add_trace(
+                            go.Scatter(x=x_axis, y=plot_data['pbrake_r'].values, 
+                                      name='Brake Rear', line=dict(color='#ff9896', width=2, dash='dash')),
+                            row=row, col=1
+                        )
+                    fig.update_yaxes(title_text="Brake Pressure", row=row, col=1)
+                    row += 1
+                
+                # Steering
+                if 'steering' in available_channels:
+                    fig.add_trace(
+                        go.Scatter(x=x_axis, y=plot_data['Steering_Angle'].values, 
+                                  name='Steering', line=dict(color='#9467bd', width=2)),
+                        row=row, col=1
+                    )
+                    fig.update_yaxes(title_text="Steering Angle (°)", row=row, col=1)
+                    row += 1
+                
+                fig.update_xaxes(title_text=x_label, row=num_plots, col=1)
+                fig.update_layout(
+                    height=250 * num_plots,
+                    showlegend=False,
+                    hovermode='x unified'
+                )
+                
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning("⚠️ No telemetry channels available for visualization")
+        
+        # ======================
+        # TAB 2: AI ANALYSIS
+        # ======================
+        with tab2:
+            st.subheader("AI Prediction Analysis")
+            
+            # Prepare data
+            plot_data = predicted_data.copy()
+            if len(plot_data) > 10000:
+                step = len(plot_data) // 10000
+                plot_data = plot_data.iloc[::step].copy()
+            
+            if 'Laptrigger_lapdist_dls' in plot_data.columns:
+                x_axis = plot_data['Laptrigger_lapdist_dls'].values
+                x_label = 'Distance (m)'
+            else:
+                x_axis = plot_data.index.values
+                x_label = 'Sample Index'
+            
+            # Speed comparison with error bands
             fig = go.Figure()
             
             # Actual speed
             fig.add_trace(go.Scatter(
                 x=x_axis, 
-                y=plot_data['speed'], 
-                name='Actual Speed', 
-                line=dict(color='#1f77b4', width=2),
+                y=plot_data['speed'].values, 
+                name='Actual Speed',
+                line=dict(color='#1f77b4', width=3),
                 hovertemplate='%{y:.1f} km/h<extra></extra>'
             ))
             
             # Predicted speed
             fig.add_trace(go.Scatter(
                 x=x_axis, 
-                y=plot_data['predicted_speed'], 
-                name='AI Expected Speed', 
-                line=dict(color='#ff7f0e', dash='dash', width=2),
+                y=plot_data['predicted_speed'].values, 
+                name='AI Expected Speed',
+                line=dict(color='#2ca02c', width=2, dash='dash'),
                 hovertemplate='%{y:.1f} km/h<extra></extra>'
+            ))
+            
+            # Error threshold bands
+            fig.add_trace(go.Scatter(
+                x=x_axis,
+                y=plot_data['predicted_speed'].values + threshold,
+                name='Upper Threshold',
+                line=dict(color='rgba(255,0,0,0.3)', width=1, dash='dot'),
+                showlegend=False
+            ))
+            
+            fig.add_trace(go.Scatter(
+                x=x_axis,
+                y=plot_data['predicted_speed'].values - threshold,
+                name='Lower Threshold',
+                line=dict(color='rgba(255,0,0,0.3)', width=1, dash='dot'),
+                fill='tonexty',
+                fillcolor='rgba(255,0,0,0.1)',
+                showlegend=False
             ))
             
             # Mistakes
             mistakes = plot_data[plot_data['mistake_type'] != 'OK']
             if len(mistakes) > 0:
-                mistake_x = mistakes['Laptrigger_lapdist_dls'] if 'Laptrigger_lapdist_dls' in mistakes.columns else mistakes.index
+                mistake_x = mistakes['Laptrigger_lapdist_dls'].values if 'Laptrigger_lapdist_dls' in mistakes.columns else mistakes.index.values
                 fig.add_trace(go.Scatter(
-                    x=mistake_x, 
-                    y=mistakes['speed'], 
-                    mode='markers', 
-                    name='Mistakes', 
-                    marker=dict(color='#d62728', size=8, symbol='x'),
-                    hovertemplate='Error: %{text:.1f} km/h<extra></extra>',
-                    text=mistakes['speed_error'].abs()
+                    x=mistake_x,
+                    y=mistakes['speed'].values,
+                    mode='markers',
+                    name='Mistakes',
+                    marker=dict(
+                        color=mistakes['speed_error'].values,
+                        size=10,
+                        colorscale='RdYlGn',
+                        reversescale=True,
+                        showscale=True,
+                        colorbar=dict(title="Error (km/h)"),
+                        line=dict(color='black', width=1)
+                    ),
+                    hovertemplate='Error: %{marker.color:.1f} km/h<extra></extra>'
                 ))
             
             fig.update_layout(
-                xaxis_title=x_label, 
-                yaxis_title='Speed (km/h)', 
+                xaxis_title=x_label,
+                yaxis_title='Speed (km/h)',
                 height=500,
                 hovermode='x unified',
                 legend=dict(
@@ -390,85 +512,337 @@ if raw_data:
                     x=1
                 )
             )
+            
             st.plotly_chart(fig, use_container_width=True)
-        
-        with tab3:
-            st.subheader("Mistakes Summary")
+            
+            # Mistake Summary
+            st.subheader("Mistake Summary")
             
             col1, col2, col3 = st.columns(3)
-            mistakes = predicted_data[predicted_data['mistake_type'] != 'OK']
+            mistakes_all = predicted_data[predicted_data['mistake_type'] != 'OK']
             too_slow = predicted_data[predicted_data['mistake_type'] == 'TOO_SLOW']
             too_fast = predicted_data[predicted_data['mistake_type'] == 'TOO_FAST']
             
-            col1.metric("Total Mistakes", f"{len(mistakes):,}", 
-                       delta=f"{len(mistakes)/len(predicted_data)*100:.1f}% of lap")
+            col1.metric("Total Mistakes", f"{len(mistakes_all):,}", 
+                       delta=f"{len(mistakes_all)/len(predicted_data)*100:.1f}% of lap")
             
             if len(too_slow) > 0:
                 avg_slow_loss = abs(too_slow['speed_error'].mean())
-                col2.metric("Too Slow", f"{len(too_slow):,}", 
+                col2.metric("Too Slow Points", f"{len(too_slow):,}", 
                            delta=f"-{avg_slow_loss:.1f} km/h avg",
                            delta_color="inverse")
             else:
-                col2.metric("Too Slow", "0")
+                col2.metric("Too Slow Points", "0")
             
             if len(too_fast) > 0:
                 avg_fast_excess = too_fast['speed_error'].mean()
-                col3.metric("Too Fast", f"{len(too_fast):,}", 
+                col3.metric("Too Fast Points", f"{len(too_fast):,}", 
                            delta=f"+{avg_fast_excess:.1f} km/h avg",
                            delta_color="inverse")
             else:
-                col3.metric("Too Fast", "0")
+                col3.metric("Too Fast Points", "0")
             
-            if len(mistakes) > 0:
-                st.subheader("Worst 10 Mistakes")
-                worst_cols = ['speed', 'predicted_speed', 'speed_error', 'mistake_type']
+            # Top 10 Mistakes Table
+            if len(mistakes_all) > 0:
+                st.subheader("Top 10 Worst Mistakes")
                 
-                # Add distance if available
-                if 'Laptrigger_lapdist_dls' in mistakes.columns:
+                worst_cols = ['speed', 'predicted_speed', 'speed_error', 'mistake_type']
+                if 'Laptrigger_lapdist_dls' in mistakes_all.columns:
                     worst_cols.insert(0, 'Laptrigger_lapdist_dls')
                 
-                worst = mistakes.nlargest(10, 'abs_error')[worst_cols].copy()
+                worst = mistakes_all.nlargest(10, 'abs_error')[worst_cols].copy()
                 
-                # Format for display
+                # Format columns
+                for col in ['speed', 'predicted_speed', 'speed_error']:
+                    if col in worst.columns:
+                        worst[col] = worst[col].round(1)
                 if 'Laptrigger_lapdist_dls' in worst.columns:
                     worst['Laptrigger_lapdist_dls'] = worst['Laptrigger_lapdist_dls'].round(1)
-                worst['speed'] = worst['speed'].round(1)
-                worst['predicted_speed'] = worst['predicted_speed'].round(1)
-                worst['speed_error'] = worst['speed_error'].round(1)
                 
                 st.dataframe(worst, use_container_width=True)
-                
-                # Mistake distribution
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    st.subheader("Mistake Types")
-                    mistake_counts = predicted_data['mistake_type'].value_counts()
-                    fig_pie = px.pie(
-                        values=mistake_counts.values,
-                        names=mistake_counts.index,
-                        title="Distribution",
-                        color_discrete_map={'OK': '#2ecc71', 'TOO_SLOW': '#f39c12', 'TOO_FAST': '#e74c3c'}
-                    )
-                    st.plotly_chart(fig_pie, use_container_width=True)
-                
-                with col2:
-                    st.subheader("Error Distribution")
-                    fig_hist = px.histogram(
-                        mistakes,
-                        x='speed_error',
-                        nbins=30,
-                        title="Speed Error Distribution",
-                        labels={'speed_error': 'Speed Error (km/h)'},
-                        color_discrete_sequence=['#e74c3c']
-                    )
-                    st.plotly_chart(fig_hist, use_container_width=True)
-                
-            else:
-                st.success("🎉 Perfect lap! No mistakes detected!")
-                st.balloons()
+            
+            # Feature Importance (if available from model)
+            st.subheader("Top Contributing Features")
+            
+            try:
+                if hasattr(model, 'feature_importances_') and metadata is not None:
+                    importances = model.feature_importances_
+                    
+                    # Try to get feature names from metadata
+                    feature_names = metadata.get('features', [])
+                    
+                    if len(feature_names) == len(importances) and len(feature_names) > 0:
+                        feature_importance = pd.DataFrame({
+                            'Feature': feature_names,
+                            'Importance': importances
+                        }).sort_values('Importance', ascending=False).head(10)
+                        
+                        fig_importance = px.bar(
+                            feature_importance,
+                            x='Importance',
+                            y='Feature',
+                            orientation='h',
+                            title='Top 10 Features by Importance',
+                            color='Importance',
+                            color_continuous_scale='Viridis'
+                        )
+                        fig_importance.update_layout(height=400)
+                        st.plotly_chart(fig_importance, use_container_width=True)
+                    else:
+                        st.info("ℹ️ Feature names not available in model metadata")
+                        
+                        # Show importances without names
+                        if len(importances) > 0:
+                            feature_importance = pd.DataFrame({
+                                'Feature': [f'Feature {i}' for i in range(len(importances))],
+                                'Importance': importances
+                            }).sort_values('Importance', ascending=False).head(10)
+                            
+                            fig_importance = px.bar(
+                                feature_importance,
+                                x='Importance',
+                                y='Feature',
+                                orientation='h',
+                                title='Top 10 Features by Importance (Unnamed)',
+                                color='Importance',
+                                color_continuous_scale='Viridis'
+                            )
+                            fig_importance.update_layout(height=400)
+                            st.plotly_chart(fig_importance, use_container_width=True)
+                else:
+                    st.info("ℹ️ Model does not support feature importance extraction")
+            except Exception as e:
+                st.info(f"ℹ️ Feature importance not available: {str(e)}")
         
+        # ======================
+        # TAB 3: SECTOR ANALYSIS
+        # ======================
+        with tab3:
+            st.subheader("Sector-by-Sector Analysis")
+            
+            # Divide lap into sectors
+            num_sectors = st.slider("Number of Sectors", 3, 10, 5)
+            
+            if 'Laptrigger_lapdist_dls' in predicted_data.columns:
+                # Create a copy for sector analysis
+                sector_data = predicted_data.copy()
+                
+                # Remove NaN values from distance column
+                sector_data = sector_data.dropna(subset=['Laptrigger_lapdist_dls'])
+                
+                if len(sector_data) > 0:
+                    max_distance = sector_data['Laptrigger_lapdist_dls'].max()
+                    sector_length = max_distance / num_sectors
+                    
+                    # Calculate sector with proper NaN handling
+                    sector_data['sector'] = (sector_data['Laptrigger_lapdist_dls'] // sector_length).fillna(0).astype(int)
+                    sector_data['sector'] = sector_data['sector'].clip(0, num_sectors - 1)
+                    
+                    # Calculate sector statistics
+                    sector_stats = sector_data.groupby('sector').agg({
+                        'speed_error': ['mean', 'std', 'min', 'max'],
+                        'abs_error': 'mean',
+                        'mistake_type': lambda x: (x != 'OK').sum()
+                    }).round(2)
+                    
+                    sector_stats.columns = ['Avg Error', 'Std Error', 'Min Error', 'Max Error', 'Avg Abs Error', 'Mistakes']
+                    sector_stats.index = [f'Sector {i+1}' for i in sector_stats.index]
+                    
+                    # Display sector table
+                    st.dataframe(sector_stats, use_container_width=True)
+                    
+                    # Sector visualization
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        # Average error by sector
+                        fig_sector_error = px.bar(
+                            x=sector_stats.index,
+                            y=sector_stats['Avg Error'],
+                            title='Average Speed Error by Sector',
+                            labels={'x': 'Sector', 'y': 'Avg Error (km/h)'},
+                            color=sector_stats['Avg Error'],
+                            color_continuous_scale='RdYlGn',
+                            color_continuous_midpoint=0
+                        )
+                        st.plotly_chart(fig_sector_error, use_container_width=True)
+                    
+                    with col2:
+                        # Mistakes by sector
+                        fig_sector_mistakes = px.bar(
+                            x=sector_stats.index,
+                            y=sector_stats['Mistakes'],
+                            title='Mistakes by Sector',
+                            labels={'x': 'Sector', 'y': 'Number of Mistakes'},
+                            color=sector_stats['Mistakes'],
+                            color_continuous_scale='Reds'
+                        )
+                        st.plotly_chart(fig_sector_mistakes, use_container_width=True)
+                    
+                    # Sector map
+                    st.subheader("Track Map by Sector")
+                    if 'VBOX_Lat_Min' in sector_data.columns and 'VBOX_Long_Minutes' in sector_data.columns:
+                        map_data = sector_data.dropna(subset=['VBOX_Lat_Min', 'VBOX_Long_Minutes'])
+                        
+                        if len(map_data) > 5000:
+                            map_data = map_data.iloc[::len(map_data)//5000]
+                        
+                        if len(map_data) > 0:
+                            fig_map = px.scatter_mapbox(
+                                map_data,
+                                lat="VBOX_Lat_Min",
+                                lon="VBOX_Long_Minutes",
+                                color="sector",
+                                hover_data=['speed', 'predicted_speed', 'speed_error'],
+                                zoom=13,
+                                height=600,
+                                color_continuous_scale='Viridis'
+                            )
+                            fig_map.update_layout(mapbox_style="open-street-map")
+                            st.plotly_chart(fig_map, use_container_width=True)
+                else:
+                    st.warning("⚠️ No valid distance data after removing NaN values")
+            else:
+                st.warning("⚠️ Distance data not available for sector analysis")
+        
+        # ======================
+        # TAB 4: LAP COMPARISON
+        # ======================
         with tab4:
+            st.subheader("Lap Comparison Analysis")
+            
+            if comparison_lap_data is not None and len(comparison_lap_data) > 0:
+                
+                # Align data by distance or index
+                if 'Laptrigger_lapdist_dls' in predicted_data.columns and 'Laptrigger_lapdist_dls' in comparison_lap_data.columns:
+                    
+                    # Downsample both
+                    if len(predicted_data) > 5000:
+                        data1 = predicted_data.iloc[::len(predicted_data)//5000].copy()
+                    else:
+                        data1 = predicted_data.copy()
+                    
+                    if len(comparison_lap_data) > 5000:
+                        data2 = comparison_lap_data.iloc[::len(comparison_lap_data)//5000].copy()
+                    else:
+                        data2 = comparison_lap_data.copy()
+                    
+                    # Remove NaN from distance
+                    data1 = data1.dropna(subset=['Laptrigger_lapdist_dls', 'speed'])
+                    data2 = data2.dropna(subset=['Laptrigger_lapdist_dls', 'speed'])
+                    
+                    if len(data1) > 0 and len(data2) > 0:
+                        # Create comparison plot
+                        fig = make_subplots(
+                            rows=2, cols=1,
+                            shared_xaxes=True,
+                            subplot_titles=('Speed Comparison', 'Delta'),
+                            vertical_spacing=0.1
+                        )
+                        
+                        # Speed traces
+                        fig.add_trace(
+                            go.Scatter(
+                                x=data1['Laptrigger_lapdist_dls'].values,
+                                y=data1['speed'].values,
+                                name=f'Lap {selected_lap}',
+                                line=dict(color='#1f77b4', width=2)
+                            ),
+                            row=1, col=1
+                        )
+                        
+                        fig.add_trace(
+                            go.Scatter(
+                                x=data2['Laptrigger_lapdist_dls'].values,
+                                y=data2['speed'].values,
+                                name=f'Lap {comparison_lap}',
+                                line=dict(color='#ff7f0e', width=2)
+                            ),
+                            row=1, col=1
+                        )
+                        
+                        # Calculate delta (interpolate for alignment)
+                        try:
+                            from scipy import interpolate
+                            
+                            f1 = interpolate.interp1d(
+                                data1['Laptrigger_lapdist_dls'], 
+                                data1['speed'], 
+                                bounds_error=False, 
+                                fill_value='extrapolate'
+                            )
+                            f2 = interpolate.interp1d(
+                                data2['Laptrigger_lapdist_dls'], 
+                                data2['speed'], 
+                                bounds_error=False, 
+                                fill_value='extrapolate'
+                            )
+                            
+                            common_x = np.linspace(
+                                max(data1['Laptrigger_lapdist_dls'].min(), data2['Laptrigger_lapdist_dls'].min()),
+                                min(data1['Laptrigger_lapdist_dls'].max(), data2['Laptrigger_lapdist_dls'].max()),
+                                1000
+                            )
+                            
+                            delta = f1(common_x) - f2(common_x)
+                            
+                            # Delta trace
+                            fig.add_trace(
+                                go.Scatter(
+                                    x=common_x,
+                                    y=delta,
+                                    name='Delta',
+                                    fill='tozeroy',
+                                    line=dict(color='green', width=2),
+                                    fillcolor='rgba(0,255,0,0.2)'
+                                ),
+                                row=2, col=1
+                            )
+                            
+                            # Add zero line
+                            fig.add_hline(y=0, line_dash="dash", line_color="gray", row=2, col=1)
+                            
+                            # Update axes
+                            fig.update_xaxes(title_text="Distance (m)", row=2, col=1)
+                            fig.update_yaxes(title_text="Speed (km/h)", row=1, col=1)
+                            fig.update_yaxes(title_text="Delta (km/h)", row=2, col=1)
+                            
+                            fig.update_layout(height=700, hovermode='x unified')
+                            
+                            st.plotly_chart(fig, use_container_width=True)
+                            
+                            # Summary statistics
+                            col1, col2, col3 = st.columns(3)
+                            
+                            avg_delta = np.mean(delta)
+                            max_advantage = np.max(delta)
+                            max_disadvantage = np.min(delta)
+                            
+                            col1.metric("Average Delta", f"{avg_delta:.2f} km/h")
+                            col2.metric("Max Advantage", f"{max_advantage:.2f} km/h")
+                            col3.metric("Max Disadvantage", f"{max_disadvantage:.2f} km/h")
+                            
+                        except Exception as e:
+                            st.error(f"Error calculating delta: {e}")
+                            st.info("Showing speed comparison only")
+                            
+                            fig.update_xaxes(title_text="Distance (m)", row=1, col=1)
+                            fig.update_yaxes(title_text="Speed (km/h)", row=1, col=1)
+                            fig.update_layout(height=400, hovermode='x unified')
+                            st.plotly_chart(fig, use_container_width=True)
+                    else:
+                        st.warning("⚠️ No valid data after removing NaN values")
+                    
+                else:
+                    st.warning("⚠️ Distance data not available for comparison")
+            
+            else:
+                st.info("ℹ️ Select a comparison lap in the sidebar to enable lap comparison")
+        
+        # ======================
+        # TAB 5: EXPORT & DETAILS
+        # ======================
+        with tab5:
             st.subheader("Export Data")
             
             csv = predicted_data.to_csv(index=False)
@@ -477,7 +851,8 @@ if raw_data:
                 csv,
                 f"lap_{selected_lap}_analysis.csv",
                 "text/csv",
-                key='download-csv'
+                key='download-csv',
+                use_container_width=True
             )
             
             st.subheader("Data Summary")
@@ -488,97 +863,66 @@ if raw_data:
             col3.metric("Memory", f"{memory_size:.1f} MB")
             
             # Statistics
-            st.subheader("Speed Statistics")
+            st.subheader("Statistical Summary")
             
             col1, col2 = st.columns(2)
             
             with col1:
-                st.write("**Actual Speed**")
-                speed_stats = predicted_data['speed'].describe()
+                st.write("**Speed Statistics**")
+                speed_stats = predicted_data[['speed', 'predicted_speed']].describe()
                 st.dataframe(speed_stats, use_container_width=True)
             
             with col2:
-                st.write("**Predicted Speed**")
-                pred_speed_stats = predicted_data['predicted_speed'].describe()
-                st.dataframe(pred_speed_stats, use_container_width=True)
+                st.write("**Error Statistics**")
+                error_stats = predicted_data[['speed_error', 'abs_error']].describe()
+                st.dataframe(error_stats, use_container_width=True)
             
-            # Error statistics
-            st.subheader("Prediction Error Statistics")
-            error_stats = predicted_data['speed_error'].describe()
-            st.dataframe(error_stats, use_container_width=True)
-            
-            # Show available columns
+            # Available columns
             with st.expander("📋 View All Columns"):
                 st.write(f"**{len(predicted_data.columns)} columns:**")
                 st.write(list(predicted_data.columns))
             
-            # Show sample data
-            with st.expander("👀 Preview Data (First 100 rows)"):
+            # Sample data
+            with st.expander("👀 Preview Data"):
                 st.dataframe(predicted_data.head(100), use_container_width=True)
 
 else:
+    # Welcome screen
     st.info("👈 Upload data files to begin!")
     
-    st.markdown(f"""
-    ### ⚙️ Current Settings:
-    - **Max rows**: {max_telemetry_rows:,} (samples large files to prevent crashes)
-    - **Sample fraction**: {int(sample_frac*100)}% (for long-format data before pivot)
-    - **Processing speed**: {chunk_size:,} rows/chunk
+    col1, col2 = st.columns(2)
     
-    ### 💡 Performance Tips:
-    - **For files > 10M rows**: Use 5-10% sample, 50k-100k max rows
-    - **For files 1-10M rows**: Use 10-20% sample, 100k-250k max rows
-    - **For files < 1M rows**: Use 50-100% sample, 250k-500k max rows
-    - **If VSCode crashes**: Reduce sample % to 5% and max rows to 50k
-    
-    ### 📋 Required Files:
-    
-    **Telemetry CSV** (Required)
-    - Must include speed measurements and lap information
-    - Supported formats:
-      - **Wide format**: Columns like speed, gear, throttle, etc.
-      - **Long format**: Columns telemetry_name + telemetry_value (auto-pivoted)
-    
-    **Results CSV** (Optional)
-    - Race results with driver/team info
-    
-    **Weather CSV** (Optional)
-    - Weather conditions during race
-    
-    ### 📊 Data Format Examples:
-    """)
-    
-    # Example data format
-    with st.expander("📖 Wide Format Example (Standard)"):
-        st.code("""
-lap,timestamp,vehicle_number,speed,gear,aps,pbrake_f,Steering_Angle
-1,2024-01-01 10:00:00,101,120.5,3,75.2,0.0,15.3
-1,2024-01-01 10:00:01,101,125.3,4,80.1,0.0,12.7
-1,2024-01-01 10:00:02,101,128.7,4,85.5,0.0,8.2
-        """, language="csv")
-    
-    with st.expander("📖 Long Format Example (Auto-Pivoted)"):
-        st.code("""
-lap,timestamp,vehicle_number,telemetry_name,telemetry_value
-1,2024-01-01 10:00:00,101,speed,120.5
-1,2024-01-01 10:00:00,101,gear,3
-1,2024-01-01 10:00:00,101,aps,75.2
-1,2024-01-01 10:00:01,101,speed,125.3
-1,2024-01-01 10:00:01,101,gear,4
-        """, language="csv")
-        st.info("Long-format data is automatically converted to wide format during processing")
-    
-    with st.expander("🔍 Essential Metrics"):
-        st.write("""
-        The system looks for these telemetry metrics:
-        - **speed** (required) - Vehicle speed
-        - **gear** - Current gear
-        - **aps** / **throttle** - Throttle position
-        - **pbrake_f** / **pbrake_r** - Front/rear brake pressure
-        - **Steering_Angle** - Steering wheel angle
-        - **accx_can** / **accy_can** - Lateral/longitudinal acceleration
-        - **Laptrigger_lapdist_dls** - Distance along lap
-        - **VBOX_Lat_Min** / **VBOX_Long_Minutes** - GPS coordinates
+    with col1:
+        st.markdown("""
+        ### ⚙️ Current Settings:
+        - **Max rows**: {0:,}
+        - **Sample fraction**: {1}%
+        - **Processing speed**: {2:,} rows/chunk
         
-        Only essential metrics are kept to reduce memory usage.
+        ### 💡 Performance Tips:
+        - **Files > 10M rows**: 5-10% sample, 50k-100k max
+        - **Files 1-10M rows**: 10-20% sample, 100k-250k max
+        - **Files < 1M rows**: 50-100% sample, 250k-500k max
+        """.format(max_telemetry_rows, int(sample_frac*100), chunk_size))
+    
+    with col2:
+        st.markdown("""
+        ### 📋 Required Files:
+        
+        **Telemetry CSV** (Required)
+        - Speed, lap, and other metrics
+        - Wide or long format supported
+        
+        **Results CSV** (Optional)
+        - Race results and standings
+        
+        **Weather CSV** (Optional)
+        - Weather conditions
+        
+        ### 📊 Features:
+        - ✅ Complete telemetry visualization
+        - ✅ AI-powered mistake detection
+        - ✅ Sector-by-sector analysis
+        - ✅ Lap comparison
+        - ✅ Feature importance analysis
         """)
