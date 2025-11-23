@@ -23,16 +23,13 @@ def upload_data():
     """Let user upload main files."""
     st.sidebar.header("Upload Your Data")
     telemetry_file = st.sidebar.file_uploader("Upload Main Telemetry CSV", type="csv")
-    results_file = st.sidebar.file_uploader("Upload Race Results CSV", type="csv")
-    weather_file = st.sidebar.file_uploader("Upload Weather CSV", type="csv")
-    # Add more uploaders if needed, e.g., for analysis, best_laps, lap_start/end
+    results_file = st.sidebar.file_uploader("Upload Race Results CSV (Optional)", type="csv")
+    weather_file = st.sidebar.file_uploader("Upload Weather CSV (Optional)", type="csv")
 
-    if telemetry_file and results_file and weather_file:
+    if telemetry_file:
         telemetry = load_csv(telemetry_file)
-        results = load_csv(results_file)
-        weather = load_csv(weather_file)
-        # Load others similarly if added
+        results = load_csv(results_file) if results_file else None
+        weather = load_csv(weather_file) if weather_file else None
         return {"telemetry": telemetry, "results": results, "weather": weather}
     else:
-        st.warning("Upload all required files to start.")
         return None

@@ -5,10 +5,13 @@
         "chunksize",
         "cota",
         "dedup",
+        "GAZOO",
         "importances",
         "lapdist",
         "Laptrigger",
         "pbrake",
-        "sonoma"
+        "selectbox",
+        "sonoma",
+        "vcar"
     ]
 }
