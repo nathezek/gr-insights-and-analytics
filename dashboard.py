@@ -75,6 +75,26 @@ except Exception as e:
     st.error(f"❌ Failed to load model: {e}")
     st.stop()
 
+# ADD: single shared friendly name mapping (available to all tabs)
+feature_name_mapping = {
+    'speed': 'Speed',
+    'gear': 'Gear',
+    'total_g': 'Total G-Force',
+    'accx_can': 'Lateral Acceleration',
+    'Steering_Angle': 'Steering Angle',
+    'aps': 'Throttle Position',
+    'accy_can': 'Longitudinal Acceleration',
+    'pbrake_f': 'Front Brake Pressure',
+    'pbrake_r': 'Rear Brake Pressure',
+    'Laptrigger_lapdist_dls': 'Lap Distance',
+    'acc_angle': 'Acceleration Angle',
+    'gear_aps': 'Gear × Throttle',
+    'total_brake': 'Total Brake Pressure',
+    'brake_balance': 'Brake Balance (F/R)',
+    'g_per_gear': 'G-Force per Gear',
+    'abs_steering': 'Absolute Steering Angle'
+}
+
 # Data upload
 raw_data = upload_data()
 
@@ -155,6 +175,15 @@ if raw_data:
         st.error("❌ 'lap' column not found")
         st.stop()
     
+    # Drop rows with NaN in speed or lap (and timestamp if present)
+    critical_cols = ['speed', 'lap']
+    if 'timestamp' in all_cleaned.columns:
+        critical_cols.append('timestamp')
+    all_cleaned = all_cleaned.dropna(subset=critical_cols)
+    if len(all_cleaned) == 0:
+        st.error("❌ No valid telemetry data after cleaning (missing speed/lap/timestamp)")
+        st.stop()
+
     # Filters
     st.sidebar.header("🔍 Filters")
     
@@ -335,86 +364,95 @@ if raw_data:
                 available_channels.append('brake')
             if 'Steering_Angle' in plot_data.columns:
                 available_channels.append('steering')
-            
+
+            # Use friendly names for subplot titles
+            subplot_titles = []
+            for ch in available_channels:
+                if ch == 'brake':
+                    subplot_titles.append('Brake Pressure')
+                elif ch == 'steering':
+                    subplot_titles.append(feature_name_mapping.get('Steering_Angle', 'Steering Angle'))
+                else:
+                    subplot_titles.append(feature_name_mapping.get(ch, ch).title())
+
             num_plots = len(available_channels)
-            
+
             if num_plots > 0:
                 fig = make_subplots(
                     rows=num_plots, 
                     cols=1,
                     shared_xaxes=True,
                     vertical_spacing=0.05,
-                    subplot_titles=[ch.upper() for ch in available_channels],
+                    subplot_titles=subplot_titles,
                     row_heights=[1] * num_plots
                 )
-                
                 row = 1
-                
+
                 # Speed
                 if 'speed' in available_channels:
                     fig.add_trace(
                         go.Scatter(x=x_axis, y=plot_data['speed'].values, 
-                                  name='Speed', line=dict(color='#1f77b4', width=2)),
+                                   name=feature_name_mapping.get('speed', 'Speed'), line=dict(color='#1f77b4', width=2)),
                         row=row, col=1
                     )
                     fig.update_yaxes(title_text="Speed (km/h)", row=row, col=1)
                     row += 1
-                
+
                 # Gear
                 if 'gear' in available_channels:
                     fig.add_trace(
                         go.Scatter(x=x_axis, y=plot_data['gear'].values, 
-                                  name='Gear', line=dict(color='#ff7f0e', width=2),
-                                  mode='lines+markers', marker=dict(size=3)),
+                                   name=feature_name_mapping.get('gear', 'Gear'), line=dict(color='#ff7f0e', width=2),
+                                   mode='lines+markers', marker=dict(size=3)),
                         row=row, col=1
                     )
-                    fig.update_yaxes(title_text="Gear", row=row, col=1)
+                    fig.update_yaxes(title_text=feature_name_mapping.get('gear', 'Gear'), row=row, col=1)
                     row += 1
-                
+
                 # Throttle
                 if 'aps' in available_channels:
                     fig.add_trace(
                         go.Scatter(x=x_axis, y=plot_data['aps'].values, 
-                                  name='Throttle', line=dict(color='#2ca02c', width=2)),
+                                   name=feature_name_mapping.get('aps', 'Throttle'), line=dict(color='#2ca02c', width=2)),
                         row=row, col=1
                     )
-                    fig.update_yaxes(title_text="Throttle (%)", row=row, col=1)
+                    fig.update_yaxes(title_text=feature_name_mapping.get('aps', 'Throttle Position') + " (%)", row=row, col=1)
                     row += 1
-                
+
                 # Brakes
                 if 'brake' in available_channels:
                     if 'pbrake_f' in plot_data.columns:
                         fig.add_trace(
                             go.Scatter(x=x_axis, y=plot_data['pbrake_f'].values, 
-                                      name='Brake Front', line=dict(color='#d62728', width=2)),
+                                       name=feature_name_mapping.get('pbrake_f', 'Brake Front'), line=dict(color='#d62728', width=2)),
                             row=row, col=1
                         )
                     if 'pbrake_r' in plot_data.columns:
                         fig.add_trace(
                             go.Scatter(x=x_axis, y=plot_data['pbrake_r'].values, 
-                                      name='Brake Rear', line=dict(color='#ff9896', width=2, dash='dash')),
+                                       name=feature_name_mapping.get('pbrake_r', 'Brake Rear'), line=dict(color='#ff9896', width=2, dash='dash')),
                             row=row, col=1
                         )
                     fig.update_yaxes(title_text="Brake Pressure", row=row, col=1)
                     row += 1
-                
+
                 # Steering
                 if 'steering' in available_channels:
                     fig.add_trace(
                         go.Scatter(x=x_axis, y=plot_data['Steering_Angle'].values, 
-                                  name='Steering', line=dict(color='#9467bd', width=2)),
+                                   name=feature_name_mapping.get('Steering_Angle', 'Steering Angle'), line=dict(color='#9467bd', width=2)),
                         row=row, col=1
                     )
-                    fig.update_yaxes(title_text="Steering Angle (°)", row=row, col=1)
+                    fig.update_yaxes(title_text=feature_name_mapping.get('Steering_Angle', 'Steering Angle') + " (°)", row=row, col=1)
                     row += 1
-                
+
                 fig.update_xaxes(title_text=x_label, row=num_plots, col=1)
                 fig.update_layout(
                     height=250 * num_plots,
-                    showlegend=False,
+                    showlegend=True,
                     hovermode='x unified'
                 )
-                
+
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.warning("⚠️ No telemetry channels available for visualization")
@@ -561,7 +599,7 @@ if raw_data:
                 
                 st.dataframe(worst, use_container_width=True)
             
-            # Feature Importance (if available from model)
+            # Feature Importance with REAL names
             st.subheader("Top Contributing Features")
             
             try:
@@ -571,9 +609,22 @@ if raw_data:
                     # Try to get feature names from metadata
                     feature_names = metadata.get('features', [])
                     
+                    # If no feature names in metadata, reconstruct them
+                    if len(feature_names) != len(importances):
+                        # Use the standard feature list
+                        feature_names = [
+                            'gear', 'total_g', 'accx_can', 'Steering_Angle', 'aps', 
+                            'accy_can', 'pbrake_f', 'pbrake_r', 'Laptrigger_lapdist_dls',
+                            'acc_angle', 'gear_aps', 'total_brake', 'brake_balance', 
+                            'g_per_gear', 'abs_steering'
+                        ][:len(importances)]  # Trim to actual length
+                    
                     if len(feature_names) == len(importances) and len(feature_names) > 0:
+                        # Map to friendly names
+                        friendly_names = [feature_name_mapping.get(f, f) for f in feature_names]
+                        
                         feature_importance = pd.DataFrame({
-                            'Feature': feature_names,
+                            'Feature': friendly_names,
                             'Importance': importances
                         }).sort_values('Importance', ascending=False).head(10)
                         
@@ -582,9 +633,10 @@ if raw_data:
                             x='Importance',
                             y='Feature',
                             orientation='h',
-                            title='Top 10 Features by Importance',
+                            title='Top 10 Most Important Telemetry Features',
                             color='Importance',
-                            color_continuous_scale='Viridis'
+                            color_continuous_scale='Viridis',
+                            labels={'Importance': 'Importance Score', 'Feature': 'Telemetry Feature'}
                         )
                         fig_importance.update_layout(height=400)
                         st.plotly_chart(fig_importance, use_container_width=True)
@@ -603,7 +655,7 @@ if raw_data:
                                 x='Importance',
                                 y='Feature',
                                 orientation='h',
-                                title='Top 10 Features by Importance (Unnamed)',
+                                title='Top 10 Features by Importance',
                                 color='Importance',
                                 color_continuous_scale='Viridis'
                             )
@@ -649,6 +701,15 @@ if raw_data:
                     sector_stats.index = [f'Sector {i+1}' for i in sector_stats.index]
                     
                     # Display sector table
+                    # Rename columns for friendly names
+                    sector_stats = sector_stats.rename(columns={
+                        'Avg Error': 'Avg Speed Error (km/h)',
+                        'Std Error': 'Std Speed Error (km/h)',
+                        'Min Error': 'Min Speed Error (km/h)',
+                        'Max Error': 'Max Speed Error (km/h)',
+                        'Avg Abs Error': 'Avg Absolute Error (km/h)',
+                        'Mistakes': 'Mistake Count'
+                    })
                     st.dataframe(sector_stats, use_container_width=True)
                     
                     # Sector visualization
@@ -658,10 +719,10 @@ if raw_data:
                         # Average error by sector
                         fig_sector_error = px.bar(
                             x=sector_stats.index,
-                            y=sector_stats['Avg Error'],
+                            y=sector_stats['Avg Speed Error (km/h)'],
                             title='Average Speed Error by Sector',
-                            labels={'x': 'Sector', 'y': 'Avg Error (km/h)'},
-                            color=sector_stats['Avg Error'],
+                            labels={'x': 'Sector', 'y': 'Avg Speed Error (km/h)'},
+                            color=sector_stats['Avg Speed Error (km/h)'],
                             color_continuous_scale='RdYlGn',
                             color_continuous_midpoint=0
                         )
@@ -671,10 +732,10 @@ if raw_data:
                         # Mistakes by sector
                         fig_sector_mistakes = px.bar(
                             x=sector_stats.index,
-                            y=sector_stats['Mistakes'],
+                            y=sector_stats['Mistake Count'],
                             title='Mistakes by Sector',
                             labels={'x': 'Sector', 'y': 'Number of Mistakes'},
-                            color=sector_stats['Mistakes'],
+                            color=sector_stats['Mistake Count'],
                             color_continuous_scale='Reds'
                         )
                         st.plotly_chart(fig_sector_mistakes, use_container_width=True)

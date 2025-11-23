@@ -255,6 +255,17 @@ def clean_telemetry(df, max_rows=500000, sample_frac=0.10):
         print(f"[ERROR] Available: {list(result.columns)}")
         raise ValueError(f"Missing 'lap' column. Available: {list(result.columns)[:30]}")
     
+    # Drop rows with NaN in critical columns
+    critical_cols = ['speed', 'lap']
+    if 'timestamp' in result.columns:
+        critical_cols.append('timestamp')
+    result = result.dropna(subset=critical_cols)
+    
+    # Sort by lap and timestamp for alignment
+    sort_cols = [col for col in ['lap', 'timestamp'] if col in result.columns]
+    if sort_cols:
+        result = result.sort_values(sort_cols).reset_index(drop=True)
+
     print(f"[INFO] ✅ Telemetry cleaning complete: {len(result):,} rows")
     gc.collect()
     
@@ -404,6 +415,17 @@ def join_datasets(data_dict, max_merged_rows=1000000):
         print(f"[WARN] Final dataset too large ({len(merged):,}). Sampling to {max_merged_rows:,}")
         merged = merged.sample(n=max_merged_rows, random_state=42).copy()
     
+    # After all merges, drop rows with NaN in critical columns
+    critical_cols = ['speed', 'lap']
+    if 'timestamp' in merged.columns:
+        critical_cols.append('timestamp')
+    merged = merged.dropna(subset=critical_cols)
+
+    # Sort by lap and timestamp for alignment
+    sort_cols = [col for col in ['lap', 'timestamp'] if col in merged.columns]
+    if sort_cols:
+        merged = merged.sort_values(sort_cols).reset_index(drop=True)
+
     print(f"[INFO] ✅ Final merged data: {len(merged):,} rows")
     gc.collect()
     
