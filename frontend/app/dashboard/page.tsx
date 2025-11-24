@@ -78,6 +78,8 @@ export default function DashboardPage() {
             setLoadingMistakes(true);
             getMistakeAnalysis(sessionId, selectedLap)
                 .then(response => {
+                    console.log('Mistake Analysis Data:', response.data);
+                    console.log('Full Lap Data Sample:', response.data.full_lap_data?.[0]);
                     setMistakeAnalysis(response.data);
                     setLoadingMistakes(false);
                 })
@@ -481,12 +483,83 @@ export default function DashboardPage() {
                                                     config={{ responsive: true, displayModeBar: true, scrollZoom: true }}
                                                     style={{ width: '100%' }}
                                                 />
+                                            ) : mistakeAnalysis.full_lap_data && mistakeAnalysis.full_lap_data.length > 0 ? (
+                                                <Plot
+                                                    data={[
+                                                        {
+                                                            x: mistakeAnalysis.full_lap_data.map((p: any) => p.Laptrigger_lapdist_dls),
+                                                            y: mistakeAnalysis.full_lap_data.map((p: any) => p.speed),
+                                                            mode: 'lines',
+                                                            name: 'Actual Speed',
+                                                            line: { color: '#3b82f6', width: 2 },
+                                                            type: 'scatter',
+                                                            hovertemplate: '<b>Speed:</b> %{y:.1f} km/h<br><b>Distance:</b> %{x:.0f}m<extra></extra>'
+                                                        },
+                                                        {
+                                                            x: mistakeAnalysis.full_lap_data.map((p: any) => p.Laptrigger_lapdist_dls),
+                                                            y: mistakeAnalysis.full_lap_data.map((p: any) => p.predicted_speed),
+                                                            mode: 'lines',
+                                                            name: 'AI Expected',
+                                                            line: { color: '#22c55e', dash: 'dash', width: 2 },
+                                                            type: 'scatter',
+                                                            hovertemplate: '<b>Expected:</b> %{y:.1f} km/h<br><b>Distance:</b> %{x:.0f}m<extra></extra>'
+                                                        },
+                                                        ...(mistakeAnalysis.mistake_points && mistakeAnalysis.mistake_points.length > 0 ? [{
+                                                            x: mistakeAnalysis.mistake_points.map((p: any) => p.Laptrigger_lapdist_dls),
+                                                            y: mistakeAnalysis.mistake_points.map((p: any) => p.speed),
+                                                            mode: 'markers' as const,
+                                                            name: 'Mistakes',
+                                                            marker: {
+                                                                color: '#fbbf24',
+                                                                size: 10,
+                                                                symbol: 'x',
+                                                                line: {
+                                                                    color: '#fff',
+                                                                    width: 1
+                                                                }
+                                                            },
+                                                            type: 'scatter' as const,
+                                                            hovertemplate: '<b>Mistake</b><br>Speed: %{y:.1f} km/h<extra></extra>'
+                                                        }] : [])
+                                                    ]}
+                                                    layout={{
+                                                        paper_bgcolor: '#242324',
+                                                        plot_bgcolor: '#191818',
+                                                        font: { color: '#fafafa' },
+                                                        height: 450,
+                                                        margin: { l: 60, r: 40, t: 40, b: 60 },
+                                                        title: {
+                                                            text: 'Speed Analysis (No GPS Data)',
+                                                            font: { size: 14, color: '#9ca3af' }
+                                                        },
+                                                        xaxis: {
+                                                            title: { text: 'Distance (m)' },
+                                                            gridcolor: '#2C2C2B',
+                                                            color: '#fafafa'
+                                                        },
+                                                        yaxis: {
+                                                            title: { text: 'Speed (km/h)' },
+                                                            gridcolor: '#2C2C2B',
+                                                            color: '#fafafa'
+                                                        },
+                                                        hovermode: 'closest',
+                                                        legend: {
+                                                            x: 0.02,
+                                                            y: 0.98,
+                                                            bgcolor: 'rgba(36, 35, 36, 0.8)',
+                                                            bordercolor: '#2C2C2B',
+                                                            borderwidth: 1
+                                                        }
+                                                    }}
+                                                    config={{ responsive: true, displayModeBar: true, scrollZoom: true }}
+                                                    style={{ width: '100%' }}
+                                                />
                                             ) : (
                                                 <div className="h-[450px] flex items-center justify-center text-neutral-500 border border-dashed border-neutral-700 rounded">
                                                     <div className="text-center">
-                                                        <div className="text-4xl mb-2">📍</div>
-                                                        <p className="font-medium">No GPS data available</p>
-                                                        <p className="text-sm text-neutral-600 mt-1">Track map requires GPS coordinates in telemetry</p>
+                                                        <div className="text-4xl mb-2">�</div>
+                                                        <p className="font-medium">No track data available</p>
+                                                        <p className="text-sm text-neutral-600 mt-1">Unable to load lap data for visualization</p>
                                                     </div>
                                                 </div>
                                             )}

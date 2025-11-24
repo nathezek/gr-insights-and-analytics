@@ -143,8 +143,9 @@ def clean_telemetry_long_format_chunked(df, sample_frac=0.10, max_chunks=80):
         'distance': 'Laptrigger_lapdist_dls', 'dist': 'Laptrigger_lapdist_dls', 'LapDist': 'Laptrigger_lapdist_dls',
         'accx': 'accx_can', 'LateralAccel': 'accx_can',
         'accy': 'accy_can', 'LongitudinalAccel': 'accy_can',
-        'Latitude': 'lat', 'GPS_Latitude': 'lat', 'POS_Y': 'lat',
-        'Longitude': 'lon', 'GPS_Longitude': 'lon', 'POS_X': 'lon',
+        'Latitude': 'lat', 'GPS_Latitude': 'lat', 'POS_Y': 'pos_y',
+        'Longitude': 'lon', 'GPS_Longitude': 'lon', 'POS_X': 'pos_x',
+        'VBOX_Lat_Min': 'lat', 'VBOX_Long_Minutes': 'lon',
     }
     
     for old_name, new_name in column_mappings.items():
@@ -259,8 +260,9 @@ def clean_telemetry(df, max_rows=500000, sample_frac=0.10):
             'distance': 'Laptrigger_lapdist_dls', 'dist': 'Laptrigger_lapdist_dls', 'LapDist': 'Laptrigger_lapdist_dls',
             'accx': 'accx_can', 'LateralAccel': 'accx_can',
             'accy': 'accy_can', 'LongitudinalAccel': 'accy_can',
-            'Latitude': 'lat', 'GPS_Latitude': 'lat', 'POS_Y': 'lat',
-            'Longitude': 'lon', 'GPS_Longitude': 'lon', 'POS_X': 'lon',
+            'Latitude': 'lat', 'GPS_Latitude': 'lat', 'POS_Y': 'pos_y',
+            'Longitude': 'lon', 'GPS_Longitude': 'lon', 'POS_X': 'pos_x',
+            'VBOX_Lat_Min': 'lat', 'VBOX_Long_Minutes': 'lon',
         }
         
         for old_name, new_name in column_mappings.items():
