@@ -36,7 +36,10 @@ const Graph = ({ data, layout, title, height = 300 }: GraphProps) => {
     }), [layout, title, height]);
 
     return (
-        <div className="w-full h-full bg-[#242324] border border-[#2C2C2B] rounded-lg p-2">
+        <div
+            className="w-full bg-[#242324] border border-[#2C2C2B] rounded-lg p-2"
+            style={{ height: `${height}px` }}
+        >
             <Plot
                 data={data}
                 layout={defaultLayout}
