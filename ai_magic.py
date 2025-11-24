@@ -247,14 +247,14 @@ def generate_insights(df, threshold_kmh):
     mistake_count = len(mistakes)
 
     if mistake_count == 0:
-        insights.append("🎉 Perfect lap! No significant mistakes detected.")
+        insights.append("Perfect lap! No significant mistakes detected.")
         return insights
 
     # Overall stats
     total_points = len(df)
     mistake_pct = (mistake_count / total_points) * 100
     insights.append(
-        f"⚠️  {mistake_count:,} mistakes detected ({mistake_pct:.1f}% of lap)"
+        f"{mistake_count:,} mistakes detected ({mistake_pct:.1f}% of lap)"
     )
 
     # Breakdown by type
@@ -265,7 +265,7 @@ def generate_insights(df, threshold_kmh):
         avg_slow_loss = df[df["mistake_type"]
                            == "TOO_SLOW"]["speed_error"].mean()
         insights.append(
-            f"🐌 {too_slow} points too slow (avg {abs(
+            f"{too_slow} points too slow (avg {abs(
                 avg_slow_loss):.1f} km/h lost)"
         )
 
@@ -273,7 +273,7 @@ def generate_insights(df, threshold_kmh):
         avg_fast_excess = df[df["mistake_type"]
                              == "TOO_FAST"]["speed_error"].mean()
         insights.append(
-            f"🏎️  {too_fast} points too fast (avg {
+            f"{too_fast} points too fast (avg {
                 avg_fast_excess:.1f} km/h over)"
         )
 
@@ -286,12 +286,12 @@ def generate_insights(df, threshold_kmh):
     if len(worst_slow) > 0:
         worst_error = worst_slow.iloc[0]["speed_error"]
         insights.append(
-            f"📉 Worst slow mistake: {abs(worst_error):.1f} km/h below expected"
+            f"Worst slow mistake: {abs(worst_error):.1f} km/h below expected"
         )
 
     if len(worst_fast) > 0:
         worst_error = worst_fast.iloc[0]["speed_error"]
-        insights.append(f"📈 Worst fast mistake: {
+        insights.append(f"Worst fast mistake: {
                         worst_error:.1f} km/h above expected")
 
     # Corner vs straight analysis
@@ -314,12 +314,12 @@ def generate_insights(df, threshold_kmh):
 
             if corner_pct > straight_pct:
                 insights.append(
-                    f"🔄 More mistakes in corners ({corner_pct:.1f}%) vs straights ({
+                    f"More mistakes in corners ({corner_pct:.1f}%) vs straights ({
                         straight_pct:.1f}%)"
                 )
             elif straight_pct > corner_pct:
                 insights.append(
-                    f"➡️  More mistakes on straights ({straight_pct:.1f}%) vs corners ({
+                    f"More mistakes on straights ({straight_pct:.1f}%) vs corners ({
                         corner_pct:.1f}%)"
                 )
 
@@ -333,7 +333,7 @@ def generate_insights(df, threshold_kmh):
             total_mistake_pct = (mistake_count / total_points) * 100
             if braking_pct > total_mistake_pct:
                 insights.append(
-                    f"🛑 High mistake rate during braking ({braking_pct:.1f}%)"
+                    f"High mistake rate during braking ({braking_pct:.1f}%)"
                 )
 
     return insights

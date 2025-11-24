@@ -1,3 +1,4 @@
+
 # Gazoo Insights & Analytics
 
 Advanced telemetry analysis dashboard for race engineers. Identify mistakes, optimize lap times, and visualize performance with AI-powered insights.
@@ -63,4 +64,3 @@ Advanced telemetry analysis dashboard for race engineers. Identify mistakes, opt
 
 🎞️ Preview
 <video src="./frontend/public/video.mp4" />
-

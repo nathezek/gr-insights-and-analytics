@@ -557,7 +557,6 @@ export default function DashboardPage() {
                                             ) : (
                                                 <div className="h-[450px] flex items-center justify-center text-neutral-500 border border-dashed border-neutral-700 rounded">
                                                     <div className="text-center">
-                                                        <div className="text-4xl mb-2">�</div>
                                                         <p className="font-medium">No track data available</p>
                                                         <p className="text-sm text-neutral-600 mt-1">Unable to load lap data for visualization</p>
                                                     </div>
@@ -590,7 +589,7 @@ export default function DashboardPage() {
                                                     ))
                                                 ) : (
                                                     <div className="text-center py-12 text-neutral-500">
-                                                        <div className="mb-2">🎉</div>
+
                                                         No major handling mistakes detected in specific corners.
                                                     </div>
                                                 )}
