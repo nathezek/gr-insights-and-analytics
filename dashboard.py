@@ -334,7 +334,7 @@ if raw_data:
             st.subheader("Complete Telemetry Analysis")
             
             # Prepare x-axis
-            if 'Laptrigger_lapdist_dls' in predicted_data.columns:
+            if 'Laptrigger_lapdist_dls' in predicted_data.columns and predicted_data['Laptrigger_lapdist_dls'].notna().any():
                 x_axis = predicted_data['Laptrigger_lapdist_dls']
                 x_label = 'Distance (m)'
             else:
@@ -347,7 +347,7 @@ if raw_data:
                 st.caption(f"📊 Displaying 10,000 of {len(plot_data):,} points for performance")
                 step = len(plot_data) // 10000
                 plot_data = plot_data.iloc[::step].copy()
-                if 'Laptrigger_lapdist_dls' in plot_data.columns:
+                if 'Laptrigger_lapdist_dls' in plot_data.columns and predicted_data['Laptrigger_lapdist_dls'].notna().any():
                     x_axis = plot_data['Laptrigger_lapdist_dls'].values
                 else:
                     x_axis = plot_data.index.values
@@ -392,7 +392,9 @@ if raw_data:
                 if 'speed' in available_channels:
                     fig.add_trace(
                         go.Scatter(x=x_axis, y=plot_data['speed'].values, 
-                                   name=feature_name_mapping.get('speed', 'Speed'), line=dict(color='#1f77b4', width=2)),
+                                   name=feature_name_mapping.get('speed', 'Speed'), 
+                                   line=dict(color='#1f77b4', width=2),
+                                   mode='lines'),
                         row=row, col=1
                     )
                     fig.update_yaxes(title_text="Speed (km/h)", row=row, col=1)
@@ -402,8 +404,9 @@ if raw_data:
                 if 'gear' in available_channels:
                     fig.add_trace(
                         go.Scatter(x=x_axis, y=plot_data['gear'].values, 
-                                   name=feature_name_mapping.get('gear', 'Gear'), line=dict(color='#ff7f0e', width=2),
-                                   mode='lines+markers', marker=dict(size=3)),
+                                   name=feature_name_mapping.get('gear', 'Gear'), 
+                                   line=dict(color='#ff7f0e', width=2),
+                                   mode='lines'),
                         row=row, col=1
                     )
                     fig.update_yaxes(title_text=feature_name_mapping.get('gear', 'Gear'), row=row, col=1)
@@ -413,7 +416,9 @@ if raw_data:
                 if 'aps' in available_channels:
                     fig.add_trace(
                         go.Scatter(x=x_axis, y=plot_data['aps'].values, 
-                                   name=feature_name_mapping.get('aps', 'Throttle'), line=dict(color='#2ca02c', width=2)),
+                                   name=feature_name_mapping.get('aps', 'Throttle'), 
+                                   line=dict(color='#2ca02c', width=2),
+                                   mode='lines'),
                         row=row, col=1
                     )
                     fig.update_yaxes(title_text=feature_name_mapping.get('aps', 'Throttle Position') + " (%)", row=row, col=1)
@@ -424,13 +429,17 @@ if raw_data:
                     if 'pbrake_f' in plot_data.columns:
                         fig.add_trace(
                             go.Scatter(x=x_axis, y=plot_data['pbrake_f'].values, 
-                                       name=feature_name_mapping.get('pbrake_f', 'Brake Front'), line=dict(color='#d62728', width=2)),
+                                       name=feature_name_mapping.get('pbrake_f', 'Brake Front'), 
+                                       line=dict(color='#d62728', width=2),
+                                       mode='lines'),
                             row=row, col=1
                         )
                     if 'pbrake_r' in plot_data.columns:
                         fig.add_trace(
                             go.Scatter(x=x_axis, y=plot_data['pbrake_r'].values, 
-                                       name=feature_name_mapping.get('pbrake_r', 'Brake Rear'), line=dict(color='#ff9896', width=2, dash='dash')),
+                                       name=feature_name_mapping.get('pbrake_r', 'Brake Rear'), 
+                                       line=dict(color='#ff9896', width=2, dash='dash'),
+                                       mode='lines'),
                             row=row, col=1
                         )
                     fig.update_yaxes(title_text="Brake Pressure", row=row, col=1)
@@ -440,7 +449,9 @@ if raw_data:
                 if 'steering' in available_channels:
                     fig.add_trace(
                         go.Scatter(x=x_axis, y=plot_data['Steering_Angle'].values, 
-                                   name=feature_name_mapping.get('Steering_Angle', 'Steering Angle'), line=dict(color='#9467bd', width=2)),
+                                   name=feature_name_mapping.get('Steering_Angle', 'Steering Angle'), 
+                                   line=dict(color='#9467bd', width=2),
+                                   mode='lines'),
                         row=row, col=1
                     )
                     fig.update_yaxes(title_text=feature_name_mapping.get('Steering_Angle', 'Steering Angle') + " (°)", row=row, col=1)

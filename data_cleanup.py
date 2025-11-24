@@ -5,14 +5,14 @@ import gc
 
 # Essential telemetry channels to keep (filter out the rest)
 PREFERRED_CHANNELS = {
-    "speed", "Speed", "SPEED",
+    "speed", "Speed", "SPEED", "vCar", "velocity",
     "gear", "Gear", "GEAR",
     "aps", "APS", "throttle", "Throttle",
-    "pbrake_f", "pbrake_r",
-    "Steering_Angle", "steering", "steer",
-    "accx_can", "accy_can",
+    "pbrake_f", "pbrake_r", "brake_f", "brake_r", "BrakeFront", "BrakeRear",
+    "Steering_Angle", "steering", "steer", "SteeringAngle", "steering_angle",
+    "accx_can", "accy_can", "accx", "accy", "LateralAccel", "LongitudinalAccel",
     "VBOX_Long_Minutes", "VBOX_Lat_Min",
-    "Laptrigger_lapdist_dls", "distance",
+    "Laptrigger_lapdist_dls", "distance", "dist", "LapDist",
 }
 
 
@@ -113,9 +113,15 @@ def clean_telemetry_long_format_chunked(df, sample_frac=0.10, max_chunks=80):
     
     # Step 5: Handle column name variations
     column_mappings = {
-        'Speed': 'speed', 'SPEED': 'speed',
+        'Speed': 'speed', 'SPEED': 'speed', 'vCar': 'speed', 'velocity': 'speed',
         'Gear': 'gear', 'GEAR': 'gear',
         'APS': 'aps', 'Throttle': 'aps', 'throttle': 'aps',
+        'steering': 'Steering_Angle', 'steer': 'Steering_Angle', 'SteeringAngle': 'Steering_Angle', 'steering_angle': 'Steering_Angle',
+        'brake_f': 'pbrake_f', 'BrakeFront': 'pbrake_f', 'pbrake_front': 'pbrake_f',
+        'brake_r': 'pbrake_r', 'BrakeRear': 'pbrake_r', 'pbrake_rear': 'pbrake_r',
+        'distance': 'Laptrigger_lapdist_dls', 'dist': 'Laptrigger_lapdist_dls', 'LapDist': 'Laptrigger_lapdist_dls',
+        'accx': 'accx_can', 'LateralAccel': 'accx_can',
+        'accy': 'accy_can', 'LongitudinalAccel': 'accy_can',
     }
     
     for old_name, new_name in column_mappings.items():
@@ -223,6 +229,12 @@ def clean_telemetry(df, max_rows=500000, sample_frac=0.10):
             'Lap': 'lap', 'LAP': 'lap',
             'Gear': 'gear', 'GEAR': 'gear',
             'APS': 'aps', 'Throttle': 'aps',
+            'steering': 'Steering_Angle', 'steer': 'Steering_Angle', 'SteeringAngle': 'Steering_Angle', 'steering_angle': 'Steering_Angle',
+            'brake_f': 'pbrake_f', 'BrakeFront': 'pbrake_f', 'pbrake_front': 'pbrake_f',
+            'brake_r': 'pbrake_r', 'BrakeRear': 'pbrake_r', 'pbrake_rear': 'pbrake_r',
+            'distance': 'Laptrigger_lapdist_dls', 'dist': 'Laptrigger_lapdist_dls', 'LapDist': 'Laptrigger_lapdist_dls',
+            'accx': 'accx_can', 'LateralAccel': 'accx_can',
+            'accy': 'accy_can', 'LongitudinalAccel': 'accy_can',
         }
         
         for old_name, new_name in column_mappings.items():
