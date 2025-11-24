@@ -60,6 +60,7 @@ export default function DashboardPage() {
         if (!sessionId || selectedLap === null) return;
 
         setLoadingLap(true);
+        setMistakeAnalysis(null); // Clear previous mistake analysis
         getLapData(sessionId, selectedLap)
             .then(response => {
                 setLapData(response.data.data || []);
@@ -71,9 +72,9 @@ export default function DashboardPage() {
             });
     }, [sessionId, selectedLap]);
 
-    // Load mistake analysis when switching to mistakes tab or changing lap
+    // Load mistake analysis when switching to mistakes tab
     useEffect(() => {
-        if (activeTab === 'mistakes' && sessionId && selectedLap !== null) {
+        if (activeTab === 'mistakes' && sessionId && selectedLap !== null && !mistakeAnalysis) {
             setLoadingMistakes(true);
             getMistakeAnalysis(sessionId, selectedLap)
                 .then(response => {
@@ -85,7 +86,7 @@ export default function DashboardPage() {
                     setLoadingMistakes(false);
                 });
         }
-    }, [activeTab, sessionId, selectedLap]);
+    }, [activeTab, sessionId, selectedLap, mistakeAnalysis]);
 
     if (loading) {
         return (
@@ -361,6 +362,169 @@ export default function DashboardPage() {
                                 </div>
                             ) : mistakeAnalysis ? (
                                 <>
+                                    {/* Track Heatmap & AI Coach */}
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Track Heatmap */}
+                                        <div className="bg-[#242324] border border-[#2C2C2B] rounded-lg p-6">
+                                            <h3 className="text-lg font-semibold mb-4">Track Analysis</h3>
+                                            {mistakeAnalysis.full_lap_data && (mistakeAnalysis.full_lap_data[0]?.lat || mistakeAnalysis.full_lap_data[0]?.pos_x) ? (
+                                                /* @ts-ignore - Plotly type definitions are overly strict */
+                                                < Plot
+                                                    data={[
+                                                        // Track line colored by speed
+                                                        {
+                                                            x: mistakeAnalysis.full_lap_data.map((p: any) => p.lon || p.pos_x),
+                                                            y: mistakeAnalysis.full_lap_data.map((p: any) => p.lat || p.pos_y),
+                                                            mode: 'lines+markers',
+                                                            type: 'scatter',
+                                                            line: {
+                                                                color: '#3b82f6',
+                                                                width: 2
+                                                            },
+                                                            marker: {
+                                                                color: mistakeAnalysis.full_lap_data.map((p: any) => p.speed || 0),
+                                                                colorscale: [
+                                                                    [0, '#3b82f6'],
+                                                                    [0.5, '#22c55e'],
+                                                                    [1, '#ef4444']
+                                                                ],
+                                                                size: 3,
+                                                                showscale: true,
+                                                                colorbar: {
+                                                                    title: { text: 'Speed' },
+                                                                    thickness: 12,
+                                                                    len: 0.6,
+                                                                    x: 1.02
+                                                                },
+                                                                cmin: 0,
+                                                                cmax: Math.max(...mistakeAnalysis.full_lap_data.map((p: any) => p.speed || 0))
+                                                            },
+                                                            name: 'Track',
+                                                            hovertemplate: 'Speed: %{marker.color:.1f} km/h<extra></extra>',
+                                                            showlegend: false
+                                                        },
+                                                        // Mistake points overlay
+                                                        ...(mistakeAnalysis.mistake_points && mistakeAnalysis.mistake_points.length > 0 ? [{
+                                                            x: mistakeAnalysis.mistake_points
+                                                                .filter((p: any) => {
+                                                                    const lapData = mistakeAnalysis.full_lap_data.find((d: any) =>
+                                                                        Math.abs(d.Laptrigger_lapdist_dls - p.Laptrigger_lapdist_dls) < 5
+                                                                    );
+                                                                    return lapData && (lapData.lat || lapData.pos_x);
+                                                                })
+                                                                .map((p: any) => {
+                                                                    const lapData = mistakeAnalysis.full_lap_data.find((d: any) =>
+                                                                        Math.abs(d.Laptrigger_lapdist_dls - p.Laptrigger_lapdist_dls) < 5
+                                                                    );
+                                                                    return lapData ? (lapData.lon || lapData.pos_x) : null;
+                                                                })
+                                                                .filter((x: any) => x !== null),
+                                                            y: mistakeAnalysis.mistake_points
+                                                                .filter((p: any) => {
+                                                                    const lapData = mistakeAnalysis.full_lap_data.find((d: any) =>
+                                                                        Math.abs(d.Laptrigger_lapdist_dls - p.Laptrigger_lapdist_dls) < 5
+                                                                    );
+                                                                    return lapData && (lapData.lat || lapData.pos_x);
+                                                                })
+                                                                .map((p: any) => {
+                                                                    const lapData = mistakeAnalysis.full_lap_data.find((d: any) =>
+                                                                        Math.abs(d.Laptrigger_lapdist_dls - p.Laptrigger_lapdist_dls) < 5
+                                                                    );
+                                                                    return lapData ? (lapData.lat || lapData.pos_y) : null;
+                                                                })
+                                                                .filter((y: any) => y !== null),
+                                                            mode: 'markers',
+                                                            type: 'scatter',
+                                                            marker: {
+                                                                color: '#fbbf24',
+                                                                size: 10,
+                                                                symbol: 'x',
+                                                                line: {
+                                                                    color: '#fff',
+                                                                    width: 1
+                                                                }
+                                                            },
+                                                            name: 'Mistakes',
+                                                            hovertemplate: 'Mistake<extra></extra>',
+                                                            showlegend: true
+                                                        }] : [])
+                                                    ] as any}
+                                                    layout={{
+                                                        paper_bgcolor: '#242324',
+                                                        plot_bgcolor: '#191818',
+                                                        font: { color: '#fafafa' },
+                                                        height: 450,
+                                                        margin: { l: 40, r: 80, t: 20, b: 40 },
+                                                        xaxis: {
+                                                            showgrid: false,
+                                                            zeroline: false,
+                                                            showticklabels: false,
+                                                            title: ''
+                                                        },
+                                                        yaxis: {
+                                                            showgrid: false,
+                                                            zeroline: false,
+                                                            showticklabels: false,
+                                                            scaleanchor: 'x',
+                                                            scaleratio: 1,
+                                                            title: ''
+                                                        },
+                                                        hovermode: 'closest',
+                                                        legend: {
+                                                            x: 0.02,
+                                                            y: 0.98,
+                                                            bgcolor: 'rgba(36, 35, 36, 0.8)',
+                                                            bordercolor: '#2C2C2B',
+                                                            borderwidth: 1
+                                                        }
+                                                    }}
+                                                    config={{ responsive: true, displayModeBar: true, scrollZoom: true }}
+                                                    style={{ width: '100%' }}
+                                                />
+                                            ) : (
+                                                <div className="h-[450px] flex items-center justify-center text-neutral-500 border border-dashed border-neutral-700 rounded">
+                                                    <div className="text-center">
+                                                        <div className="text-4xl mb-2">📍</div>
+                                                        <p className="font-medium">No GPS data available</p>
+                                                        <p className="text-sm text-neutral-600 mt-1">Track map requires GPS coordinates in telemetry</p>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* AI Coach Advice */}
+                                        <div className="bg-[#242324] border border-[#2C2C2B] rounded-lg p-6">
+                                            <h3 className="text-lg font-semibold mb-4">AI Coach Suggestions</h3>
+                                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                                                {mistakeAnalysis.turn_advice && mistakeAnalysis.turn_advice.length > 0 ? (
+                                                    mistakeAnalysis.turn_advice.map((advice: any, idx: number) => (
+                                                        <div
+                                                            key={idx}
+                                                            className={`p-4 rounded-md border ${advice.type === 'Too Fast'
+                                                                ? 'bg-red-900/20 border-red-800/50'
+                                                                : 'bg-yellow-900/20 border-yellow-800/50'
+                                                                }`}
+                                                        >
+                                                            <div className="flex justify-between items-start mb-1">
+                                                                <span className="font-bold text-white">{advice.turn}</span>
+                                                                <span className={`text-xs px-2 py-0.5 rounded ${advice.type === 'Too Fast' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'
+                                                                    }`}>
+                                                                    {advice.type}
+                                                                </span>
+                                                            </div>
+                                                            <p className="text-sm text-neutral-300">{advice.message}</p>
+                                                        </div>
+                                                    ))
+                                                ) : (
+                                                    <div className="text-center py-12 text-neutral-500">
+                                                        <div className="mb-2">🎉</div>
+                                                        No major handling mistakes detected in specific corners.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     {/* Statistics Cards */}
                                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                         <div className="bg-[#242324] border border-[#2C2C2B] rounded-lg p-4">
@@ -483,133 +647,6 @@ export default function DashboardPage() {
                                                     hovermode: 'closest'
                                                 }}
                                                 config={{ responsive: true, displayModeBar: true }}
-                                                style={{ width: '100%' }}
-                                            />
-                                        </div>
-                                    )}
-
-                                    {/* Track Heat-Map */}
-                                    {mistakeAnalysis.full_lap_data && mistakeAnalysis.full_lap_data.length > 0 && (
-                                        <div className="bg-[#242324] border border-[#2C2C2B] rounded-lg p-6">
-                                            <h3 className="text-lg font-semibold mb-4">Track Heat-Map</h3>
-                                            <p className="text-sm text-neutral-400 mb-6">
-                                                Speed errors visualized on the track layout
-                                            </p>
-                                            <Plot
-                                                data={[
-                                                    // Track centerline (all points)
-                                                    {
-                                                        x: mistakeAnalysis.full_lap_data
-                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
-                                                            .map((p: any) => p.VBOX_Long_Minutes),
-                                                        y: mistakeAnalysis.full_lap_data
-                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
-                                                            .map((p: any) => p.VBOX_Lat_Min),
-                                                        mode: 'lines' as const,
-                                                        name: 'Track',
-                                                        line: {
-                                                            color: '#4b5563',
-                                                            width: 8
-                                                        },
-                                                        type: 'scatter' as const,
-                                                        hoverinfo: 'skip',
-                                                        showlegend: false
-                                                    },
-                                                    // Speed error heat-map overlay
-                                                    {
-                                                        x: mistakeAnalysis.full_lap_data
-                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
-                                                            .map((p: any) => p.VBOX_Long_Minutes),
-                                                        y: mistakeAnalysis.full_lap_data
-                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
-                                                            .map((p: any) => p.VBOX_Lat_Min),
-                                                        mode: 'markers' as const,
-                                                        name: 'Speed Error',
-                                                        marker: {
-                                                            size: 8,
-                                                            color: mistakeAnalysis.full_lap_data
-                                                                .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
-                                                                .map((p: any) => {
-                                                                    const error = p.speed - p.predicted_speed;
-                                                                    return error;
-                                                                }),
-                                                            colorscale: [
-                                                                [0, '#ef4444'],      // Red for too slow
-                                                                [0.5, '#fbbf24'],    // Yellow for slight error
-                                                                [1, '#22c55e']       // Green for too fast
-                                                            ] as [number, string][],
-                                                            showscale: true,
-                                                            colorbar: {
-                                                                title: { text: 'Speed Error<br>(km/h)' },
-                                                                thickness: 20,
-                                                                len: 0.7,
-                                                                x: 1.02
-                                                            },
-                                                            cmin: -20,
-                                                            cmax: 20
-                                                        },
-                                                        type: 'scatter' as const,
-                                                        hovertemplate: '<b>Error:</b> %{marker.color:.1f} km/h<br><b>Lat:</b> %{y:.6f}<br><b>Lon:</b> %{x:.6f}<extra></extra>'
-                                                    },
-                                                    // Mistake markers (highlight major errors)
-                                                    ...(mistakeAnalysis.mistake_points && mistakeAnalysis.mistake_points.length > 0 ? [{
-                                                        x: mistakeAnalysis.mistake_points
-                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
-                                                            .map((p: any) => p.VBOX_Long_Minutes),
-                                                        y: mistakeAnalysis.mistake_points
-                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
-                                                            .map((p: any) => p.VBOX_Lat_Min),
-                                                        mode: 'markers' as const,
-                                                        name: 'Major Mistakes',
-                                                        marker: {
-                                                            size: 14,
-                                                            color: '#dc2626',
-                                                            symbol: 'x',
-                                                            line: {
-                                                                color: '#fff',
-                                                                width: 2
-                                                            }
-                                                        },
-                                                        type: 'scatter' as const,
-                                                        hovertemplate: '<b>Major Mistake</b><br><b>Error:</b> %{text}<extra></extra>',
-                                                        text: mistakeAnalysis.mistake_points
-                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
-                                                            .map((p: any) => `${p.speed_error?.toFixed(1) || 'N/A'} km/h`)
-                                                    }] : [])
-                                                ]}
-                                                layout={{
-                                                    paper_bgcolor: '#242324',
-                                                    plot_bgcolor: '#191818',
-                                                    font: { color: '#fafafa' },
-                                                    height: 600,
-                                                    margin: { l: 60, r: 100, t: 40, b: 60 },
-                                                    xaxis: {
-                                                        title: { text: 'Longitude' },
-                                                        gridcolor: '#2C2C2B',
-                                                        color: '#fafafa',
-                                                        scaleanchor: 'y',
-                                                        scaleratio: 1
-                                                    },
-                                                    yaxis: {
-                                                        title: { text: 'Latitude' },
-                                                        gridcolor: '#2C2C2B',
-                                                        color: '#fafafa'
-                                                    },
-                                                    legend: {
-                                                        x: 0.01,
-                                                        y: 0.99,
-                                                        bgcolor: 'rgba(36, 35, 36, 0.8)',
-                                                        bordercolor: '#2C2C2B',
-                                                        borderwidth: 1
-                                                    },
-                                                    hovermode: 'closest',
-                                                    dragmode: 'pan'
-                                                }}
-                                                config={{
-                                                    responsive: true,
-                                                    displayModeBar: true,
-                                                    modeBarButtonsToRemove: ['lasso2d', 'select2d']
-                                                }}
                                                 style={{ width: '100%' }}
                                             />
                                         </div>

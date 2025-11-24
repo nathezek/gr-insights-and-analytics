@@ -9,8 +9,10 @@ import uuid
 from pathlib import Path
 from datetime import datetime
 from data_cleanup import clean_telemetry
-from ai_magic import get_model, predict_mistakes
+from ai_magic import get_model, predict_mistakes, generate_turn_advice
 from csv_merger import merge_lap_csvs, validate_lap_csvs
+
+
 
 app = FastAPI()
 
@@ -37,7 +39,7 @@ async def startup_event():
     global model, imputer, metadata
     try:
         # Adjust path if needed (now in root)
-        model, metadata, imputer = get_model("saved/speed_model_v5.pkl")
+        model, metadata, imputer = get_model("saved/speed_model_v6.pkl")
         print("✅ Model loaded successfully")
     except Exception as e:
         print(f"⚠️  Could not load model: {e}")
@@ -382,8 +384,24 @@ async def get_mistake_analysis(session_id: str, lap_number: int):
             else:
                 sampled_df = lap_df.copy()
             
+            # Select columns to send
+            cols_to_send = ['Laptrigger_lapdist_dls', 'speed', 'predicted_speed']
+            
+            # Add GPS data if available
+            if 'lat' in sampled_df.columns and 'lon' in sampled_df.columns:
+                cols_to_send.extend(['lat', 'lon'])
+            elif 'pos_x' in sampled_df.columns and 'pos_y' in sampled_df.columns: # Fallback
+                cols_to_send.extend(['pos_x', 'pos_y'])
+                
+            # Add Steering for heatmap
+            if 'Steering_Angle' in sampled_df.columns:
+                cols_to_send.append('Steering_Angle')
+                
+            # Filter to only existing columns
+            cols_to_send = [c for c in cols_to_send if c in sampled_df.columns]
+
             full_lap_data = json.loads(
-                sampled_df[['Laptrigger_lapdist_dls', 'speed', 'predicted_speed']]
+                sampled_df[cols_to_send]
                 .to_json(orient="records")
             )
         
@@ -395,6 +413,9 @@ async def get_mistake_analysis(session_id: str, lap_number: int):
         
         avg_error = float(lap_df['abs_error'].mean()) if 'abs_error' in lap_df.columns else 0
         max_error = float(lap_df['abs_error'].max()) if 'abs_error' in lap_df.columns else 0
+        
+        # Generate turn advice
+        turn_advice = generate_turn_advice(lap_df)
         
         return {
             "session_id": session_id,
@@ -411,6 +432,7 @@ async def get_mistake_analysis(session_id: str, lap_number: int):
             "feature_importance": feature_importance[:10],  # Top 10 features
             "full_lap_data": full_lap_data,  # Full lap for continuous lines
             "mistake_points": mistake_points,  # Only mistakes for highlighting
+            "turn_advice": turn_advice,
             "has_data": True
         }
         

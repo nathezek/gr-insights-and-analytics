@@ -1,0 +1,249 @@
+{
+  "session_id": "851a3956-d413-4f8a-b248-336cdb7a2348",
+  "created_at": "2025-11-24T21:32:18.456631",
+  "laps": [
+    {
+      "lap": 1,
+      "points": 2948,
+      "start_time": "2025-09-04T23:32:56.117000",
+      "end_time": "2025-09-05T06:16:43.888000",
+      "duration_seconds": 24227.771,
+      "max_distance_m": 1188.0
+    },
+    {
+      "lap": 2,
+      "points": 15207,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:23:51.037000",
+      "duration_seconds": 89910.871,
+      "max_distance_m": 3705.0
+    },
+    {
+      "lap": 3,
+      "points": 28930,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:25:41.360000",
+      "duration_seconds": 90021.194,
+      "max_distance_m": 3701.0
+    },
+    {
+      "lap": 4,
+      "points": 32434,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:27:55.382000",
+      "duration_seconds": 90155.216,
+      "max_distance_m": 3711.0
+    },
+    {
+      "lap": 5,
+      "points": 28935,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:29:54.067000",
+      "duration_seconds": 90273.901,
+      "max_distance_m": 3709.0
+    },
+    {
+      "lap": 6,
+      "points": 25026,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:31:33.960000",
+      "duration_seconds": 90373.794,
+      "max_distance_m": 3706.0
+    },
+    {
+      "lap": 7,
+      "points": 25530,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:33:13.267000",
+      "duration_seconds": 90473.101,
+      "max_distance_m": 5503.0
+    },
+    {
+      "lap": 8,
+      "points": 24093,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:34:52.850000",
+      "duration_seconds": 90572.684,
+      "max_distance_m": 7207.0
+    },
+    {
+      "lap": 9,
+      "points": 25122,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:36:32.253000",
+      "duration_seconds": 90672.087,
+      "max_distance_m": 3698.0
+    },
+    {
+      "lap": 10,
+      "points": 25209,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:38:11.237000",
+      "duration_seconds": 90771.071,
+      "max_distance_m": 3698.0
+    },
+    {
+      "lap": 11,
+      "points": 24900,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:39:51.207000",
+      "duration_seconds": 90871.041,
+      "max_distance_m": 3704.0
+    },
+    {
+      "lap": 12,
+      "points": 25084,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:41:30.560000",
+      "duration_seconds": 90970.394,
+      "max_distance_m": 3699.0
+    },
+    {
+      "lap": 13,
+      "points": 24912,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:43:10.107000",
+      "duration_seconds": 91069.941,
+      "max_distance_m": 3674.0
+    },
+    {
+      "lap": 14,
+      "points": 29081,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:44:49.384000",
+      "duration_seconds": 91169.218,
+      "max_distance_m": 3683.0
+    },
+    {
+      "lap": 15,
+      "points": 23759,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:46:29.004000",
+      "duration_seconds": 91268.838,
+      "max_distance_m": 3703.0
+    },
+    {
+      "lap": 16,
+      "points": 23727,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:48:10.340000",
+      "duration_seconds": 91370.174,
+      "max_distance_m": 3701.0
+    },
+    {
+      "lap": 17,
+      "points": 23612,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:49:49.783000",
+      "duration_seconds": 91469.617,
+      "max_distance_m": 3668.0
+    },
+    {
+      "lap": 18,
+      "points": 23645,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:51:30.348000",
+      "duration_seconds": 91570.182,
+      "max_distance_m": 3678.0
+    },
+    {
+      "lap": 19,
+      "points": 23635,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:53:09.544000",
+      "duration_seconds": 91669.378,
+      "max_distance_m": 3678.0
+    },
+    {
+      "lap": 20,
+      "points": 23292,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:54:48.725000",
+      "duration_seconds": 91768.559,
+      "max_distance_m": 3682.0
+    },
+    {
+      "lap": 21,
+      "points": 23069,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:56:27.827000",
+      "duration_seconds": 91867.661,
+      "max_distance_m": 3685.0
+    },
+    {
+      "lap": 22,
+      "points": 23163,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:58:06.667000",
+      "duration_seconds": 91966.501,
+      "max_distance_m": 3666.0
+    },
+    {
+      "lap": 23,
+      "points": 23564,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T19:59:45.534000",
+      "duration_seconds": 92065.368,
+      "max_distance_m": 3681.0
+    },
+    {
+      "lap": 24,
+      "points": 23610,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T20:01:24.857000",
+      "duration_seconds": 92164.691,
+      "max_distance_m": 3684.0
+    },
+    {
+      "lap": 25,
+      "points": 23675,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T20:03:04.007000",
+      "duration_seconds": 92263.841,
+      "max_distance_m": 3689.0
+    },
+    {
+      "lap": 26,
+      "points": 23713,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T20:04:43.290000",
+      "duration_seconds": 92363.124,
+      "max_distance_m": 3679.0
+    },
+    {
+      "lap": 27,
+      "points": 23237,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T20:06:22.727000",
+      "duration_seconds": 92462.561,
+      "max_distance_m": 3699.0
+    },
+    {
+      "lap": 28,
+      "points": 17088,
+      "start_time": "2025-09-04T18:25:20.166000",
+      "end_time": "2025-09-05T20:08:01.790000",
+      "duration_seconds": 92561.624,
+      "max_distance_m": 3675.0
+    },
+    {
+      "lap": 29,
+      "points": 3293,
+      "start_time": "2025-09-05T00:48:05.223000",
+      "end_time": "2025-09-05T20:08:08.257000",
+      "duration_seconds": 69603.034,
+      "max_distance_m": 3682.0
+    }
+  ],
+  "insights": [
+    "\u26a0\ufe0f  298,147 mistakes detected (44.9% of lap)",
+    "\ud83d\udc0c 156382 points too slow (avg 22.2 km/h lost)",
+    "\ud83c\udfce\ufe0f  141765 points too fast (avg 30.2 km/h over)",
+    "\ud83d\udcc9 Worst slow mistake: 100.7 km/h below expected",
+    "\ud83d\udcc8 Worst fast mistake: 156.2 km/h above expected",
+    "\ud83d\udd04 More mistakes in corners (45.4%) vs straights (43.2%)",
+    "\ud83d\uded1 High mistake rate during braking (65.4%)"
+  ],
+  "total_laps": 29,
+  "total_points": 663493
+}

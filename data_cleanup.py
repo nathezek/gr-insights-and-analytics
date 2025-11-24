@@ -13,6 +13,7 @@ PREFERRED_CHANNELS = {
     "accx_can", "accy_can", "accx", "accy", "LateralAccel", "LongitudinalAccel",
     "VBOX_Long_Minutes", "VBOX_Lat_Min",
     "Laptrigger_lapdist_dls", "distance", "dist", "LapDist",
+    "lat", "lon", "Latitude", "Longitude", "POS_X", "POS_Y", "GPS_Latitude", "GPS_Longitude",
 }
 
 
@@ -142,6 +143,8 @@ def clean_telemetry_long_format_chunked(df, sample_frac=0.10, max_chunks=80):
         'distance': 'Laptrigger_lapdist_dls', 'dist': 'Laptrigger_lapdist_dls', 'LapDist': 'Laptrigger_lapdist_dls',
         'accx': 'accx_can', 'LateralAccel': 'accx_can',
         'accy': 'accy_can', 'LongitudinalAccel': 'accy_can',
+        'Latitude': 'lat', 'GPS_Latitude': 'lat', 'POS_Y': 'lat',
+        'Longitude': 'lon', 'GPS_Longitude': 'lon', 'POS_X': 'lon',
     }
     
     for old_name, new_name in column_mappings.items():
@@ -187,6 +190,7 @@ def clean_telemetry_chunked(df, chunksize=50000):
         potential_numeric_cols = [
             "speed", "gear", "aps", "pbrake_f", "pbrake_r",
             "Steering_Angle", "accx_can", "accy_can", "total_g",
+            "lat", "lon"
         ]
         
         numeric_cols = [col for col in potential_numeric_cols if col in chunk.columns]
@@ -255,6 +259,8 @@ def clean_telemetry(df, max_rows=500000, sample_frac=0.10):
             'distance': 'Laptrigger_lapdist_dls', 'dist': 'Laptrigger_lapdist_dls', 'LapDist': 'Laptrigger_lapdist_dls',
             'accx': 'accx_can', 'LateralAccel': 'accx_can',
             'accy': 'accy_can', 'LongitudinalAccel': 'accy_can',
+            'Latitude': 'lat', 'GPS_Latitude': 'lat', 'POS_Y': 'lat',
+            'Longitude': 'lon', 'GPS_Longitude': 'lon', 'POS_X': 'lon',
         }
         
         for old_name, new_name in column_mappings.items():
