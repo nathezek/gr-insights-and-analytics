@@ -199,6 +199,16 @@ async def upload_session(
             predicted_df = cleaned_df
             insights = []
         
+        # Normalize lap distance to start from 0 for each lap
+        if 'lap' in predicted_df.columns and 'Laptrigger_lapdist_dls' in predicted_df.columns:
+            print("[INFO] Normalizing lap distances...")
+            def normalize_distance(group):
+                result = group.copy()
+                result['Laptrigger_lapdist_dls'] = result['Laptrigger_lapdist_dls'] - result['Laptrigger_lapdist_dls'].min()
+                return result
+            
+            predicted_df = predicted_df.groupby('lap', group_keys=False).apply(normalize_distance)
+        
         # Get unique laps
         available_laps = sorted(predicted_df['lap'].unique())
         

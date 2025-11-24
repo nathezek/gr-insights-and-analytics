@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
 import Graph from '@/components/Graph';
 import { useRouter } from 'next/navigation';
 import { getSessionLaps, getLapData } from '@/lib/api';
@@ -177,8 +178,9 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-6">
+            {/* Header with Controls */}
             <div className="flex justify-between items-center">
-                <h1 className="text-2xl font-bold">Telemetry Dashboard</h1>
+                <h1 className="text-2xl font-bold">Telemetry Analysis</h1>
 
                 <div className="flex items-center gap-4">
                     <div className="text-sm text-gray-400">
