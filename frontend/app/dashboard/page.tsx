@@ -180,8 +180,15 @@ export default function DashboardPage() {
                 />
 
                 <Graph
-                    title="Steering Angle (°)"
-                    data={[steeringTrace]}
+                    title="Gear"
+                    data={[gearTrace]}
+                    height={200}
+                    turns={barberTurns}
+                />
+
+                <Graph
+                    title="Throttle (%)"
+                    data={[throttleTrace]}
                     height={300}
                     turns={barberTurns}
                 />
@@ -194,16 +201,9 @@ export default function DashboardPage() {
                 />
 
                 <Graph
-                    title="Throttle (%)"
-                    data={[throttleTrace]}
+                    title="Steering Angle (°)"
+                    data={[steeringTrace]}
                     height={300}
-                    turns={barberTurns}
-                />
-
-                <Graph
-                    title="Gear"
-                    data={[gearTrace]}
-                    height={200}
                     turns={barberTurns}
                 />
             </div>
