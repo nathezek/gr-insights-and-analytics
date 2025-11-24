@@ -334,23 +334,61 @@ if raw_data:
             st.subheader("Complete Telemetry Analysis")
             
             # Prepare x-axis
+            x_col = None
             if 'Laptrigger_lapdist_dls' in predicted_data.columns and predicted_data['Laptrigger_lapdist_dls'].notna().any():
-                x_axis = predicted_data['Laptrigger_lapdist_dls']
+                x_col = 'Laptrigger_lapdist_dls'
                 x_label = 'Distance (m)'
             else:
-                x_axis = predicted_data.index
                 x_label = 'Sample Index'
             
             # Downsample for plotting
             plot_data = predicted_data.copy()
+            
+            # Sort by x-axis to prevent scribbles
+            if x_col:
+                plot_data = plot_data.sort_values(x_col)
+            
             if len(plot_data) > 10000:
                 st.caption(f"📊 Displaying 10,000 of {len(plot_data):,} points for performance")
                 step = len(plot_data) // 10000
                 plot_data = plot_data.iloc[::step].copy()
-                if 'Laptrigger_lapdist_dls' in plot_data.columns and predicted_data['Laptrigger_lapdist_dls'].notna().any():
-                    x_axis = plot_data['Laptrigger_lapdist_dls'].values
-                else:
-                    x_axis = plot_data.index.values
+            
+            if x_col:
+                x_axis = plot_data[x_col].values
+            else:
+                x_axis = plot_data.index.values
+                
+            # DEBUG: Data Inspector
+            with st.expander("🕵️ Data Inspector (Debug)", expanded=False):
+                st.write("Summary of plotted data:")
+                st.write(plot_data.describe())
+                st.write("First 5 rows:")
+                st.write(plot_data.head())
+                
+                # Check specific columns
+                check_cols = ['speed', 'gear', 'aps', 'pbrake_f', 'pbrake_r', 'Steering_Angle']
+                status_data = []
+                for col in check_cols:
+                    if col in plot_data.columns:
+                        non_nan = plot_data[col].count()
+                        zeros = (plot_data[col] == 0).sum()
+                        mean_val = plot_data[col].mean()
+                        status_data.append({
+                            "Column": col,
+                            "Present": "✅",
+                            "Non-NaN Count": non_nan,
+                            "Zeros Count": zeros,
+                            "Mean Value": f"{mean_val:.2f}"
+                        })
+                    else:
+                        status_data.append({
+                            "Column": col,
+                            "Present": "❌",
+                            "Non-NaN Count": 0,
+                            "Zeros Count": 0,
+                            "Mean Value": "N/A"
+                        })
+                st.table(pd.DataFrame(status_data))
             
             # Create subplots
             available_channels = []

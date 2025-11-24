@@ -111,6 +111,26 @@ def clean_telemetry_long_format_chunked(df, sample_frac=0.10, max_chunks=80):
     
     print(f"[INFO] Pivoted to: {wide.shape}")
     
+    # Step 4b: Fill missing values (Forward/Backward fill) to handle different sensor rates
+    print("[INFO] Filling missing values (ffill/bfill)...")
+    
+    # Ensure sorted by time
+    sort_cols = [col for col in ['vehicle_number', 'lap', 'timestamp'] if col in wide.columns]
+    if sort_cols:
+        wide = wide.sort_values(sort_cols)
+    
+    # Group by lap/vehicle to avoid bleeding data across laps
+    group_cols = [col for col in ['vehicle_number', 'lap'] if col in wide.columns]
+    
+    if group_cols:
+        # We use a lambda to ffill/bfill within groups
+        # Note: transform is slow, so we iterate if needed, but simple ffill is fast
+        wide = wide.groupby(group_cols, group_keys=False).apply(lambda x: x.ffill().bfill())
+    else:
+        wide = wide.ffill().bfill()
+        
+    print(f"[INFO] After filling: {wide.shape}")
+    
     # Step 5: Handle column name variations
     column_mappings = {
         'Speed': 'speed', 'SPEED': 'speed', 'vCar': 'speed', 'velocity': 'speed',
