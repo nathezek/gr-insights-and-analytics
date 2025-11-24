@@ -10,13 +10,24 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const router = useRouter();
 
+    const [selectedLap, setSelectedLap] = useState<number | null>(null);
+
     useEffect(() => {
         const storedData = localStorage.getItem('telemetryData');
         if (storedData) {
             try {
                 const parsed = JSON.parse(storedData);
-                setData(parsed.data || []);
+                const rawData = parsed.data || [];
+                setData(rawData);
                 setInsights(parsed.insights || []);
+
+                // Set initial selected lap (first available)
+                if (rawData.length > 0) {
+                    const laps = Array.from(new Set(rawData.map((d: any) => d.lap))).sort((a: any, b: any) => a - b);
+                    if (laps.length > 0) {
+                        setSelectedLap(laps[0] as number);
+                    }
+                }
             } catch (e) {
                 console.error("Failed to parse data", e);
             }
@@ -44,12 +55,27 @@ export default function DashboardPage() {
         );
     }
 
+    // Get available laps
+    const availableLaps = Array.from(new Set(data.map((d: any) => d.lap))).sort((a: any, b: any) => a - b);
+
+    // Filter data by selected lap
+    const filteredData = selectedLap !== null
+        ? data.filter((d: any) => d.lap === selectedLap)
+        : data;
+
     // Prepare data for plots
-    const x_axis = data.map((d: any) => d.Laptrigger_lapdist_dls || d.index);
+    // Sort data by x-axis (distance or index) to ensure clean line plotting
+    const sortedData = [...filteredData].sort((a, b) => {
+        const valA = a.Laptrigger_lapdist_dls ?? a.index ?? 0;
+        const valB = b.Laptrigger_lapdist_dls ?? b.index ?? 0;
+        return valA - valB;
+    });
+
+    const x_axis = sortedData.map((d: any) => d.Laptrigger_lapdist_dls ?? d.index);
 
     const speedTrace = {
         x: x_axis,
-        y: data.map((d: any) => d.speed),
+        y: sortedData.map((d: any) => d.speed),
         type: 'scatter',
         mode: 'lines',
         name: 'Speed',
@@ -58,7 +84,7 @@ export default function DashboardPage() {
 
     const gearTrace = {
         x: x_axis,
-        y: data.map((d: any) => d.gear),
+        y: sortedData.map((d: any) => d.gear),
         type: 'scatter',
         mode: 'lines',
         name: 'Gear',
@@ -67,7 +93,7 @@ export default function DashboardPage() {
 
     const throttleTrace = {
         x: x_axis,
-        y: data.map((d: any) => d.aps),
+        y: sortedData.map((d: any) => d.aps),
         type: 'scatter',
         mode: 'lines',
         name: 'Throttle',
@@ -76,7 +102,7 @@ export default function DashboardPage() {
 
     const brakeTrace = {
         x: x_axis,
-        y: data.map((d: any) => d.pbrake_f),
+        y: sortedData.map((d: any) => d.pbrake_f),
         type: 'scatter',
         mode: 'lines',
         name: 'Brake',
@@ -85,19 +111,51 @@ export default function DashboardPage() {
 
     const steeringTrace = {
         x: x_axis,
-        y: data.map((d: any) => d.Steering_Angle),
+        y: sortedData.map((d: any) => d.Steering_Angle),
         type: 'scatter',
         mode: 'lines',
         name: 'Steering',
         line: { color: '#9467bd', width: 2 }
     };
 
+    // Placeholder turn data for Barber Motorsports Park (approximate distances in meters)
+    // User can adjust these values based on their specific telemetry
+    const barberTurns = [
+        { name: 'T1', start: 200, end: 350 },
+        { name: 'T2', start: 600, end: 750 },
+        { name: 'T3', start: 1100, end: 1200 },
+        { name: 'T4', start: 1900, end: 2100 },
+        { name: 'T5', start: 2300, end: 2500 },
+        { name: 'T6', start: 2900, end: 3100 },
+        { name: 'T7', start: 3300, end: 3500 },
+        { name: 'T8', start: 3800, end: 4000 },
+    ];
+
     return (
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold">Telemetry Dashboard</h1>
-                <div className="text-sm text-gray-400">
-                    {data.length.toLocaleString()} data points
+
+                <div className="flex items-center gap-4">
+                    <div className="text-sm text-gray-400">
+                        {sortedData.length.toLocaleString()} points
+                    </div>
+
+                    {/* Lap Selector */}
+                    <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-gray-300">Lap:</label>
+                        <select
+                            value={selectedLap ?? ''}
+                            onChange={(e) => setSelectedLap(Number(e.target.value))}
+                            className="bg-[#242324] border border-[#2C2C2B] text-white text-sm rounded-md focus:ring-red-500 focus:border-red-500 block p-2"
+                        >
+                            {availableLaps.map((lap: any) => (
+                                <option key={lap} value={lap}>
+                                    Lap {lap}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
                 </div>
             </div>
 
@@ -112,39 +170,42 @@ export default function DashboardPage() {
                 </div>
             )}
 
-            {/* Main Graphs Grid */}
-            <div className="grid grid-cols-1 gap-6">
+            {/* Main Graphs Stack */}
+            <div className="flex flex-col gap-6">
                 <Graph
                     title="Speed (km/h)"
                     data={[speedTrace]}
-                    height={350}
+                    height={400}
+                    turns={barberTurns}
                 />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Graph
-                        title="Gear"
-                        data={[gearTrace]}
-                        height={250}
-                    />
-                    <Graph
-                        title="Throttle (%)"
-                        data={[throttleTrace]}
-                        height={250}
-                    />
-                </div>
+                <Graph
+                    title="Steering Angle (°)"
+                    data={[steeringTrace]}
+                    height={300}
+                    turns={barberTurns}
+                />
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Graph
-                        title="Brake Pressure (bar)"
-                        data={[brakeTrace]}
-                        height={250}
-                    />
-                    <Graph
-                        title="Steering Angle (°)"
-                        data={[steeringTrace]}
-                        height={250}
-                    />
-                </div>
+                <Graph
+                    title="Brake Pressure (bar)"
+                    data={[brakeTrace]}
+                    height={300}
+                    turns={barberTurns}
+                />
+
+                <Graph
+                    title="Throttle (%)"
+                    data={[throttleTrace]}
+                    height={300}
+                    turns={barberTurns}
+                />
+
+                <Graph
+                    title="Gear"
+                    data={[gearTrace]}
+                    height={200}
+                    turns={barberTurns}
+                />
             </div>
         </div>
     );
