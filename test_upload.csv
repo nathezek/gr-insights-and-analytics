@@ -1,0 +1,4 @@
+speed,gear,aps,pbrake_f,Steering_Angle,Laptrigger_lapdist_dls,index
+100,3,50,0,0,10,1
+105,3,60,0,0,20,2
+110,4,80,0,0,30,3

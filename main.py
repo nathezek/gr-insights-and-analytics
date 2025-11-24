@@ -1,6 +1,73 @@
-def main():
-    print("Hello from gr-insights-and-analytics!")
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import pandas as pd
+import io
+import os
+from data_cleanup import clean_telemetry
+from ai_magic import get_model, predict_mistakes
 
+app = FastAPI()
 
-if __name__ == "__main__":
-    main()
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # For development
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Load model on startup
+model = None
+imputer = None
+metadata = None
+
+@app.on_event("startup")
+async def startup_event():
+    global model, imputer, metadata
+    try:
+        # Adjust path if needed (now in root)
+        model, metadata, imputer = get_model("saved/speed_model_v5.pkl")
+        print("✅ Model loaded")
+    except Exception as e:
+        print(f"❌ Failed to load model: {e}")
+
+@app.post("/upload")
+async def upload_file(file: UploadFile = File(...)):
+    try:
+        # Optimize: Read directly from file object instead of loading into memory
+        df = pd.read_csv(file.file)
+        
+        # Clean data (Limit to 200k rows for AI processing)
+        cleaned_df = clean_telemetry(df, max_rows=200000)
+        
+        # Predict
+        if model:
+            predicted_df, insights = predict_mistakes(model, cleaned_df, imputer)
+            
+            # Downsample for frontend visualization (Limit to 5k points to avoid localStorage quota)
+            MAX_FRONTEND_POINTS = 5000
+            if len(predicted_df) > MAX_FRONTEND_POINTS:
+                predicted_df = predicted_df.sample(n=MAX_FRONTEND_POINTS, random_state=42).sort_index()
+            
+            # Convert to JSON-friendly format (Handle NaN/Inf)
+            # Use pandas to_json which handles NaNs correctly (converts to null)
+            import json
+            result = json.loads(predicted_df.to_json(orient="records"))
+            return {
+                "data": result,
+                "insights": insights,
+                "metadata": {
+                    "rows": len(predicted_df),
+                    "columns": list(predicted_df.columns)
+                }
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Model not loaded")
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/")
+def read_root():
+    return {"status": "ok", "service": "Gazoo Analyst Backend"}
