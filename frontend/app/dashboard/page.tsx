@@ -1,50 +1,80 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Graph from '@/components/Graph';
 import { useRouter } from 'next/navigation';
+import { getSessionLaps, getLapData } from '@/lib/api';
 
 export default function DashboardPage() {
-    const [data, setData] = useState<any[]>([]);
+    const [sessionId, setSessionId] = useState<string | null>(null);
+    const [availableLaps, setAvailableLaps] = useState<any[]>([]);
+    const [selectedLap, setSelectedLap] = useState<number | null>(null);
+    const [lapData, setLapData] = useState<any[]>([]);
     const [insights, setInsights] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingLap, setLoadingLap] = useState(false);
     const router = useRouter();
 
-    const [selectedLap, setSelectedLap] = useState<number | null>(null);
-
+    // Load session metadata on mount
     useEffect(() => {
-        const storedData = localStorage.getItem('telemetryData');
-        if (storedData) {
-            try {
-                const parsed = JSON.parse(storedData);
-                const rawData = parsed.data || [];
-                setData(rawData);
-                setInsights(parsed.insights || []);
-
-                // Set initial selected lap (first available)
-                if (rawData.length > 0) {
-                    const laps = Array.from(new Set(rawData.map((d: any) => d.lap))).sort((a: any, b: any) => a - b);
-                    if (laps.length > 0) {
-                        setSelectedLap(laps[0] as number);
-                    }
-                }
-            } catch (e) {
-                console.error("Failed to parse data", e);
-            }
-        } else {
-            // Redirect to upload if no data
-            // router.push('/upload');
+        const storedSessionId = localStorage.getItem('sessionId');
+        if (!storedSessionId) {
+            router.push('/upload');
+            return;
         }
-        setLoading(false);
+
+        setSessionId(storedSessionId);
+
+        // Fetch available laps
+        getSessionLaps(storedSessionId)
+            .then(response => {
+                const data = response.data;
+                setAvailableLaps(data.laps || []);
+                setInsights(data.insights || []);
+
+                // Select first lap by default
+                if (data.laps && data.laps.length > 0) {
+                    setSelectedLap(data.laps[0].lap);
+                }
+                setLoading(false);
+            })
+            .catch(error => {
+                console.error('Failed to load session:', error);
+                setLoading(false);
+                router.push('/upload');
+            });
     }, [router]);
 
-    if (loading) return <div className="p-8">Loading...</div>;
+    // Load lap data when selected lap changes
+    useEffect(() => {
+        if (!sessionId || selectedLap === null) return;
 
-    if (data.length === 0) {
+        setLoadingLap(true);
+        getLapData(sessionId, selectedLap)
+            .then(response => {
+                setLapData(response.data.data || []);
+                setLoadingLap(false);
+            })
+            .catch(error => {
+                console.error('Failed to load lap data:', error);
+                setLoadingLap(false);
+            });
+    }, [sessionId, selectedLap]);
+
+    if (loading) {
+        return (
+            <div className="p-8 text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading session...</p>
+            </div>
+        );
+    }
+
+    if (availableLaps.length === 0) {
         return (
             <div className="p-8 text-center">
                 <h2 className="text-2xl font-bold mb-4">No Data Available</h2>
-                <p className="text-gray-400 mb-6">Please upload a telemetry file first.</p>
+                <p className="text-gray-400 mb-6">Please upload session files first.</p>
                 <button
                     onClick={() => router.push('/upload')}
                     className="bg-red-600 text-white px-6 py-2 rounded-md"
@@ -55,17 +85,8 @@ export default function DashboardPage() {
         );
     }
 
-    // Get available laps
-    const availableLaps = Array.from(new Set(data.map((d: any) => d.lap))).sort((a: any, b: any) => a - b);
-
-    // Filter data by selected lap
-    const filteredData = selectedLap !== null
-        ? data.filter((d: any) => d.lap === selectedLap)
-        : data;
-
     // Prepare data for plots
-    // Sort data by x-axis (distance or index) to ensure clean line plotting
-    const sortedData = [...filteredData].sort((a, b) => {
+    const sortedData = [...lapData].sort((a, b) => {
         const valA = a.Laptrigger_lapdist_dls ?? a.index ?? 0;
         const valB = b.Laptrigger_lapdist_dls ?? b.index ?? 0;
         return valA - valB;
@@ -73,13 +94,25 @@ export default function DashboardPage() {
 
     const x_axis = sortedData.map((d: any) => d.Laptrigger_lapdist_dls ?? d.index);
 
+    // Extract mistakes (where mistake column is 1 or true)
+    const mistakes = sortedData
+        .map((d: any, idx: number) => ({
+            x: x_axis[idx],
+            y: d.speed,
+            isMistake: d.mistake === 1 || d.mistake === true
+        }))
+        .filter(m => m.isMistake);
+
+    const speedMistakes = mistakes.map(m => ({ x: m.x, y: m.y, text: `Mistake at ${m.x.toFixed(0)}m` }));
+
     const speedTrace = {
         x: x_axis,
         y: sortedData.map((d: any) => d.speed),
         type: 'scatter',
         mode: 'lines',
         name: 'Speed',
-        line: { color: '#1f77b4', width: 2 }
+        line: { color: '#1f77b4', width: 2 },
+        hovertemplate: '<b>Speed:</b> %{y:.2f} km/h<br><b>Distance:</b> %{x:.0f}m<extra></extra>'
     };
 
     const gearTrace = {
@@ -88,7 +121,8 @@ export default function DashboardPage() {
         type: 'scatter',
         mode: 'lines',
         name: 'Gear',
-        line: { color: '#ff7f0e', width: 2 }
+        line: { color: '#ff7f0e', width: 2 },
+        hovertemplate: '<b>Gear:</b> %{y}<br><b>Distance:</b> %{x:.0f}m<extra></extra>'
     };
 
     const throttleTrace = {
@@ -97,7 +131,8 @@ export default function DashboardPage() {
         type: 'scatter',
         mode: 'lines',
         name: 'Throttle',
-        line: { color: '#2ca02c', width: 2 }
+        line: { color: '#2ca02c', width: 2 },
+        hovertemplate: '<b>Throttle:</b> %{y:.1f}%<br><b>Distance:</b> %{x:.0f}m<extra></extra>'
     };
 
     const brakeTrace = {
@@ -106,7 +141,8 @@ export default function DashboardPage() {
         type: 'scatter',
         mode: 'lines',
         name: 'Brake',
-        line: { color: '#d62728', width: 2 }
+        line: { color: '#d62728', width: 2 },
+        hovertemplate: '<b>Brake Pressure:</b> %{y:.1f} bar<br><b>Distance:</b> %{x:.0f}m<extra></extra>'
     };
 
     const steeringTrace = {
@@ -115,26 +151,29 @@ export default function DashboardPage() {
         type: 'scatter',
         mode: 'lines',
         name: 'Steering',
-        line: { color: '#9467bd', width: 2 }
+        line: { color: '#9467bd', width: 2 },
+        hovertemplate: '<b>Steering Angle:</b> %{y:.1f}°<br><b>Distance:</b> %{x:.0f}m<extra></extra>'
     };
 
-    // Turn data for Barber Motorsports Park (distances in meters, ~3.8km track)
-    // Adjusted based on actual track layout
+    // Turn data for Barber Motorsports Park
     const barberTurns = [
-        { name: 'T1', start: 50, end: 200 },      // Fast downhill left
-        { name: 'T2', start: 350, end: 480 },     // Right hander
-        { name: 'T3', start: 650, end: 780 },     // Left
-        { name: 'T4', start: 950, end: 1080 },    // Right
-        { name: 'T5', start: 1200, end: 1380 },   // Charlotte's Web (left)
-        { name: 'T6', start: 1380, end: 1500 },   // Right after T5
-        { name: 'T7', start: 1650, end: 1800 },   // Museum section entry
-        { name: 'T8', start: 1950, end: 2050 },   // Not much of a corner
-        { name: 'T9', start: 2150, end: 2300 },   // Sharp downhill right
-        { name: 'T10', start: 2600, end: 2750 },  // Uphill chicane left
-        { name: 'T11', start: 2750, end: 2900 },  // Uphill chicane right
-        { name: 'T12', start: 3100, end: 3250 },  // Left before straight
-        { name: 'T13', start: 3450, end: 3600 },  // Final corner
+        { name: 'T1', start: 0, end: 150 },
+        { name: 'T2', start: 400, end: 550 },
+        { name: 'T3', start: 700, end: 850 },
+        { name: 'T4', start: 1000, end: 1150 },
+        { name: 'T5', start: 1300, end: 1500 },
+        { name: 'T6', start: 1600, end: 1750 },
+        { name: 'T7', start: 1900, end: 2050 },
+        { name: 'T8', start: 2200, end: 2350 },
+        { name: 'T9', start: 2500, end: 2650 },
+        { name: 'T10', start: 2800, end: 2950 },
+        { name: 'T11', start: 3050, end: 3200 },
+        { name: 'T12', start: 3300, end: 3400 },
+        { name: 'T13', start: 3450, end: 3600 },
     ];
+
+    // Get current lap metadata
+    const currentLapMeta = availableLaps.find(l => l.lap === selectedLap);
 
     return (
         <div className="space-y-6">
@@ -146,6 +185,18 @@ export default function DashboardPage() {
                         {sortedData.length.toLocaleString()} points
                     </div>
 
+                    {/* Lap Info */}
+                    {currentLapMeta && (
+                        <div className="text-sm text-gray-400">
+                            {currentLapMeta.duration_seconds && (
+                                <span>Lap Time: {currentLapMeta.duration_seconds.toFixed(2)}s</span>
+                            )}
+                            {currentLapMeta.max_distance_m && (
+                                <span className="ml-3">Distance: {currentLapMeta.max_distance_m.toFixed(0)}m</span>
+                            )}
+                        </div>
+                    )}
+
                     {/* Lap Selector */}
                     <div className="flex items-center gap-2">
                         <label className="text-sm font-medium text-gray-300">Lap:</label>
@@ -153,10 +204,11 @@ export default function DashboardPage() {
                             value={selectedLap ?? ''}
                             onChange={(e) => setSelectedLap(Number(e.target.value))}
                             className="bg-[#242324] border border-[#2C2C2B] text-white text-sm rounded-md focus:ring-red-500 focus:border-red-500 block p-2"
+                            disabled={loadingLap}
                         >
                             {availableLaps.map((lap: any) => (
-                                <option key={lap} value={lap}>
-                                    Lap {lap}
+                                <option key={lap.lap} value={lap.lap}>
+                                    Lap {lap.lap}
                                 </option>
                             ))}
                         </select>
@@ -166,52 +218,71 @@ export default function DashboardPage() {
 
             {/* Insights Section */}
             {insights.length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {insights.map((insight, i) => (
-                        <div key={i} className="bg-[#242324] border border-[#2C2C2B] p-4 rounded-lg text-sm">
-                            {insight}
-                        </div>
-                    ))}
+                <div className="bg-[#242324] border border-[#2C2C2B] rounded-lg p-4">
+                    <h2 className="text-lg font-semibold mb-3">AI Insights</h2>
+                    <ul className="space-y-2">
+                        {insights.map((insight, idx) => (
+                            <li key={idx} className="text-sm text-gray-300 flex items-start gap-2">
+                                <span className="text-yellow-500 mt-1">⚠️</span>
+                                <span>{insight}</span>
+                            </li>
+                        ))}
+                    </ul>
                 </div>
             )}
 
-            {/* Main Graphs Stack */}
-            <div className="flex flex-col gap-6">
-                <Graph
-                    title="Speed (km/h)"
-                    data={[speedTrace]}
-                    height={400}
-                    turns={barberTurns}
-                />
+            {loadingLap ? (
+                <div className="text-center py-12">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
+                    <p className="text-gray-400">Loading lap data...</p>
+                </div>
+            ) : (
+                <>
+                    {/* Main Graphs Stack */}
+                    <div className="flex flex-col gap-6">
+                        <Graph
+                            title="Speed (km/h)"
+                            data={[speedTrace]}
+                            height={400}
+                            turns={barberTurns}
+                            mistakes={speedMistakes}
+                            yAxisLabel="Speed (km/h)"
+                        />
 
-                <Graph
-                    title="Gear"
-                    data={[gearTrace]}
-                    height={200}
-                    turns={barberTurns}
-                />
+                        <Graph
+                            title="Gear"
+                            data={[gearTrace]}
+                            height={200}
+                            turns={barberTurns}
+                            yAxisLabel="Gear"
+                        />
 
-                <Graph
-                    title="Throttle (%)"
-                    data={[throttleTrace]}
-                    height={300}
-                    turns={barberTurns}
-                />
+                        <Graph
+                            title="Throttle (%)"
+                            data={[throttleTrace]}
+                            height={300}
+                            turns={barberTurns}
+                            yAxisLabel="Throttle (%)"
+                        />
 
-                <Graph
-                    title="Brake Pressure (bar)"
-                    data={[brakeTrace]}
-                    height={300}
-                    turns={barberTurns}
-                />
+                        <Graph
+                            title="Brake Pressure (bar)"
+                            data={[brakeTrace]}
+                            height={300}
+                            turns={barberTurns}
+                            yAxisLabel="Brake Pressure (bar)"
+                        />
 
-                <Graph
-                    title="Steering Angle (°)"
-                    data={[steeringTrace]}
-                    height={300}
-                    turns={barberTurns}
-                />
-            </div>
+                        <Graph
+                            title="Steering Angle (°)"
+                            data={[steeringTrace]}
+                            height={300}
+                            turns={barberTurns}
+                            yAxisLabel="Steering Angle (°)"
+                        />
+                    </div>
+                </>
+            )}
         </div>
     );
 }

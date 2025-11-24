@@ -1,0 +1,45 @@
+{
+  "track_name": "Indianapolis Motor Speedway (Indy)",
+  "source_pdf": "Indy_Circuit_Map.pdf",
+  "length_m": 3925.214,
+  "sectors": {
+    "S1": {
+      "length_m": 1364.285,
+      "start_m": 0.0,
+      "end_m": 1364.285
+    },
+    "S2": {
+      "length_m": 1386.942,
+      "start_m": 1364.285,
+      "end_m": 2751.227
+    },
+    "S3": {
+      "length_m": 1173.988,
+      "start_m": 2751.227,
+      "end_m": 3925.215
+    }
+  },
+  "gps": {
+    "finish_line": {
+      "lat": 39.7931499,
+      "lon": -86.23887
+    },
+    "pit_in": {
+      "lat": 39.78941,
+      "lon": -86.2373
+    },
+    "pit_out": {
+      "lat": 39.79669,
+      "lon": -86.23881
+    }
+  },
+  "pit": {
+    "pit_time_seconds": 63,
+    "pit_in_to_out_m':": 865.429
+  },
+  "recommended_resample_m": 1.0,
+  "corners": [],
+  "centerline_xy": null,
+  "curvature_table": null,
+  "notes": "Indy engineering JSON created from supplied PDF. For full corner geometry, feed VBOX centerline or high-frequency GPS."
+}

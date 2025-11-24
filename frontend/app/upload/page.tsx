@@ -2,163 +2,216 @@
 
 import { useState } from 'react';
 import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
-import { uploadFile } from '@/lib/api';
+import { uploadSession } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import ProgressBar from '@/components/ProgressBar';
 
 export default function UploadPage() {
-    const [dragActive, setDragActive] = useState(false);
-    const [file, setFile] = useState<File | null>(null);
+    const [files, setFiles] = useState<{
+        lap_start: File | null;
+        lap_end: File | null;
+        lap_time: File | null;
+        telemetry: File | null;
+    }>({
+        lap_start: null,
+        lap_end: null,
+        lap_time: null,
+        telemetry: null
+    });
+
     const [uploadProgress, setUploadProgress] = useState(0);
     const [statusMessage, setStatusMessage] = useState('');
-
     const [uploading, setUploading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const router = useRouter();
 
-    const handleDrag = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (e.type === 'dragenter' || e.type === 'dragover') {
-            setDragActive(true);
-        } else if (e.type === 'dragleave') {
-            setDragActive(false);
-        }
+    const handleFileChange = (fileType: keyof typeof files, file: File | null) => {
+        setFiles(prev => ({ ...prev, [fileType]: file }));
     };
 
-    const handleDrop = (e: React.DragEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        setDragActive(false);
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            setFile(e.dataTransfer.files[0]);
-        }
-    };
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        e.preventDefault();
-        if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0]);
-        }
-    };
+    const allFilesSelected = files.lap_start && files.lap_end && files.lap_time && files.telemetry;
 
     const handleUpload = async () => {
-        if (!file) return;
+        if (!allFilesSelected) return;
+
         setUploading(true);
         setError(null);
         setUploadProgress(0);
-        setStatusMessage('Uploading file...');
+        setStatusMessage('Uploading files...');
 
         try {
-            const data = await uploadFile(file, (progress) => {
-                setUploadProgress(progress);
-                if (progress === 100) {
-                    setStatusMessage('Processing data (this may take a moment)...');
+            const response = await uploadSession(
+                {
+                    lap_start: files.lap_start!,
+                    lap_end: files.lap_end!,
+                    lap_time: files.lap_time!,
+                    telemetry: files.telemetry!
+                },
+                (progress) => {
+                    setUploadProgress(progress);
+                    if (progress < 100) {
+                        setStatusMessage(`Uploading... ${progress}%`);
+                    } else {
+                        setStatusMessage('Processing data...');
+                    }
                 }
-            });
+            );
 
-            // Store data in local storage or state management for now
-            localStorage.setItem('telemetryData', JSON.stringify(data));
-            router.push('/dashboard');
+            const data = response.data;
+
+            setStatusMessage('Upload complete!');
+
+            // Store session ID in localStorage
+            localStorage.setItem('sessionId', data.session_id);
+
+            // Redirect to dashboard
+            setTimeout(() => {
+                router.push('/dashboard');
+            }, 500);
+
         } catch (err: any) {
-            setError('Upload failed. Please try again.');
-            console.error(err);
+            console.error('Upload error:', err);
+            setError(err.response?.data?.detail || err.message || 'Upload failed');
+            setStatusMessage('');
+            setUploadProgress(0);
         } finally {
             setUploading(false);
         }
     };
 
-    // ... (in return statement)
-
-    <div className="flex gap-4 w-full justify-center">
-        {!uploading ? (
-            <>
-                <button
-                    onClick={() => setFile(null)}
-                    className="px-6 py-2 border border-[#2C2C2B] rounded-md hover:bg-[#242324] transition-colors"
-                >
-                    Cancel
-                </button>
-                <button
-                    onClick={handleUpload}
-                    className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md flex items-center gap-2"
-                >
-                    Start Analysis
-                </button>
-            </>
-        ) : (
-            <div className="w-full max-w-md">
-                <ProgressBar progress={uploadProgress} label={statusMessage} color="green" />
+    const FileInput = ({
+        label,
+        fileType,
+        description
+    }: {
+        label: string;
+        fileType: keyof typeof files;
+        description: string;
+    }) => (
+        <div className="bg-[#242324] border border-[#2C2C2B] rounded-lg p-4">
+            <label className="block mb-2">
+                <span className="text-sm font-medium text-gray-300">{label}</span>
+                <span className="text-xs text-gray-500 ml-2">({description})</span>
+            </label>
+            <div className="flex items-center gap-3">
+                <label className="flex-1 cursor-pointer">
+                    <div className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${files[fileType]
+                            ? 'border-green-500 bg-green-500/10'
+                            : 'border-[#2C2C2B] hover:border-red-500/50'
+                        }`}>
+                        {files[fileType] ? (
+                            <div className="flex items-center justify-center gap-2 text-green-500">
+                                <CheckCircle size={20} />
+                                <span className="text-sm">{files[fileType]!.name}</span>
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center gap-2 text-gray-400">
+                                <FileText size={20} />
+                                <span className="text-sm">Click to select file</span>
+                            </div>
+                        )}
+                    </div>
+                    <input
+                        type="file"
+                        accept=".csv"
+                        className="hidden"
+                        onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            handleFileChange(fileType, file);
+                        }}
+                    />
+                </label>
+                {files[fileType] && (
+                    <button
+                        onClick={() => handleFileChange(fileType, null)}
+                        className="px-3 py-2 text-sm text-red-400 hover:text-red-300 border border-red-500/30 rounded-md"
+                    >
+                        Clear
+                    </button>
+                )}
             </div>
-        )}
-    </div>
+        </div>
+    );
 
     return (
-        <div className="max-w-4xl mx-auto mt-10">
-            <h1 className="text-3xl font-bold mb-2">Upload Telemetry Data</h1>
-            <p className="text-gray-400 mb-8">Upload your CSV or VBO file to start analysis.</p>
-
-            <div
-                className={`border-2 border-dashed rounded-xl p-12 flex flex-col items-center justify-center transition-colors ${dragActive ? 'border-red-600 bg-[#242324]' : 'border-[#2C2C2B] bg-[#1e1d1d]'
-                    }`}
-                onDragEnter={handleDrag}
-                onDragLeave={handleDrag}
-                onDragOver={handleDrag}
-                onDrop={handleDrop}
-            >
-                <input
-                    type="file"
-                    className="hidden"
-                    id="file-upload"
-                    onChange={handleChange}
-                    accept=".csv,.vbo"
-                />
-
-                {!file ? (
-                    <>
-                        <div className="bg-[#242324] p-4 rounded-full mb-4">
-                            <Upload size={40} className="text-red-600" />
-                        </div>
-                        <p className="text-xl font-medium mb-2">Drag & drop your file here</p>
-                        <p className="text-gray-500 mb-6">or</p>
-                        <label
-                            htmlFor="file-upload"
-                            className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md cursor-pointer transition-colors"
-                        >
-                            Browse Files
-                        </label>
-                    </>
-                ) : (
-                    <div className="flex flex-col items-center">
-                        <FileText size={48} className="text-gray-300 mb-4" />
-                        <p className="text-xl font-medium mb-2">{file.name}</p>
-                        <p className="text-gray-500 mb-6">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-
-                        <div className="flex gap-4">
-                            <button
-                                onClick={() => setFile(null)}
-                                className="px-6 py-2 border border-[#2C2C2B] rounded-md hover:bg-[#242324] transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleUpload}
-                                disabled={uploading}
-                                className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-md disabled:opacity-50 flex items-center gap-2"
-                            >
-                                {uploading ? 'Processing...' : 'Start Analysis'}
-                            </button>
-                        </div>
-                    </div>
-                )}
+        <div className="max-w-4xl mx-auto p-8">
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold mb-2">Upload Session Data</h1>
+                <p className="text-gray-400">
+                    Upload all 4 CSV files for your racing session
+                </p>
             </div>
 
             {error && (
-                <div className="mt-6 p-4 bg-red-900/20 border border-red-900/50 rounded-md flex items-center gap-3 text-red-200">
-                    <AlertCircle size={20} />
-                    <span>{error}</span>
+                <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex items-start gap-3">
+                    <AlertCircle className="text-red-500 mt-0.5" size={20} />
+                    <div>
+                        <p className="text-red-400 font-medium">Upload Error</p>
+                        <p className="text-sm text-red-300">{error}</p>
+                    </div>
                 </div>
             )}
+
+            <div className="space-y-4 mb-6">
+                <FileInput
+                    label="Lap Start Data"
+                    fileType="lap_start"
+                    description="lap_start.csv"
+                />
+                <FileInput
+                    label="Lap End Data"
+                    fileType="lap_end"
+                    description="lap_end.csv"
+                />
+                <FileInput
+                    label="Lap Time Data"
+                    fileType="lap_time"
+                    description="lap_time.csv"
+                />
+                <FileInput
+                    label="Telemetry Data"
+                    fileType="telemetry"
+                    description="telemetry.csv"
+                />
+            </div>
+
+            {uploading && (
+                <div className="mb-6">
+                    <ProgressBar progress={uploadProgress} />
+                    <p className="text-sm text-gray-400 mt-2 text-center">{statusMessage}</p>
+                </div>
+            )}
+
+            <div className="flex gap-4">
+                <button
+                    onClick={handleUpload}
+                    disabled={!allFilesSelected || uploading}
+                    className={`flex-1 py-3 px-6 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors ${allFilesSelected && !uploading
+                            ? 'bg-red-600 hover:bg-red-700 text-white'
+                            : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                        }`}
+                >
+                    <Upload size={20} />
+                    {uploading ? 'Uploading...' : 'Upload Session'}
+                </button>
+
+                <button
+                    onClick={() => router.push('/dashboard')}
+                    className="px-6 py-3 border border-[#2C2C2B] rounded-lg hover:bg-[#242324] transition-colors"
+                >
+                    Cancel
+                </button>
+            </div>
+
+            <div className="mt-8 p-4 bg-[#242324] border border-[#2C2C2B] rounded-lg">
+                <h3 className="text-sm font-medium mb-2">Required Files:</h3>
+                <ul className="text-sm text-gray-400 space-y-1">
+                    <li>• <strong>lap_start.csv</strong> - Lap start timestamps/distances</li>
+                    <li>• <strong>lap_end.csv</strong> - Lap end timestamps/distances</li>
+                    <li>• <strong>lap_time.csv</strong> - Lap timing data</li>
+                    <li>• <strong>telemetry.csv</strong> - Main telemetry data (speed, throttle, brake, etc.)</li>
+                </ul>
+            </div>
         </div>
     );
 }

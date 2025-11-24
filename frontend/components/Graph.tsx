@@ -11,15 +11,23 @@ interface Turn {
     end: number;
 }
 
+interface Mistake {
+    x: number;
+    y: number;
+    text?: string;
+}
+
 interface GraphProps {
     data: any[];
     layout?: any;
     title?: string;
     height?: number;
     turns?: Turn[];
+    mistakes?: Mistake[];
+    yAxisLabel?: string;
 }
 
-const Graph = ({ data, layout, title, height = 300, turns = [] }: GraphProps) => {
+const Graph = ({ data, layout, title, height = 300, turns = [], mistakes = [], yAxisLabel = '' }: GraphProps) => {
     const defaultLayout = useMemo(() => {
         const shapes = turns.map(turn => ({
             type: 'rect',
@@ -55,33 +63,60 @@ const Graph = ({ data, layout, title, height = 300, turns = [] }: GraphProps) =>
                 color: '#a0a0a0',
                 family: 'Arial, sans-serif',
             },
-            margin: { t: 40, r: 20, b: 40, l: 40 },
+            margin: { t: 40, r: 20, b: 40, l: 60 },
             title: title ? { text: title, font: { color: '#fff', size: 16 } } : undefined,
             xaxis: {
                 gridcolor: '#2C2C2B',
                 zerolinecolor: '#2C2C2B',
+                title: { text: 'Distance (m)', font: { color: '#a0a0a0' } }
             },
             yaxis: {
                 gridcolor: '#2C2C2B',
                 zerolinecolor: '#2C2C2B',
+                title: yAxisLabel ? { text: yAxisLabel, font: { color: '#a0a0a0' } } : undefined
             },
             shapes: shapes,
             annotations: annotations,
+            hovermode: 'closest',
             ...layout,
         };
-    }, [layout, title, height, turns]);
+    }, [layout, title, height, turns, yAxisLabel]);
+
+    // Add mistake markers if provided
+    const plotData = mistakes.length > 0
+        ? [
+            ...data,
+            {
+                x: mistakes.map(m => m.x),
+                y: mistakes.map(m => m.y),
+                type: 'scatter',
+                mode: 'markers',
+                name: 'Mistakes',
+                marker: {
+                    color: '#ff6b6b',
+                    size: 10,
+                    symbol: 'circle',
+                    line: {
+                        color: '#fff',
+                        width: 2
+                    }
+                },
+                hovertemplate: mistakes.map(m => m.text || 'Mistake').join('<br>'),
+                showlegend: false
+            }
+        ]
+        : data;
 
     return (
         <div
-            className="w-full bg-[#242324] border border-[#2C2C2B] rounded-lg p-2"
+            className="bg-[#242324] border border-[#2C2C2B] rounded-lg p-4"
             style={{ height: `${height}px` }}
         >
             <Plot
-                data={data}
+                data={plotData}
                 layout={defaultLayout}
-                useResizeHandler={true}
-                style={{ width: '100%', height: '100%' }}
                 config={{ responsive: true, displayModeBar: false }}
+                style={{ width: '100%', height: '100%' }}
             />
         </div>
     );
