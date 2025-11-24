@@ -28,7 +28,7 @@ const Sidebar = () => {
                 {/* Logo - Outside sidebar visually but inside the component */}
                 <div className="p-6 pt-16 border-b border-[#2C2C2B]">
                     <Image
-                        src="/logo1.png"
+                        src="/logo_best.png"
                         alt="GR Logo"
                         width={150}
                         height={40}
@@ -98,8 +98,8 @@ const NavItem = ({
         <Link
             href={href}
             className={`flex items-center gap-3 px-4 py-2 rounded-md transition-colors ${isActive
-                    ? 'bg-[#0276CF] text-[#fafafa]'
-                    : 'text-gray-400 hover:text-white hover:bg-[#242324]'
+                ? 'bg-[#0276CF] text-[#fafafa]'
+                : 'text-gray-400 hover:text-white hover:bg-[#242324]'
                 }`}
         >
             {icon}
