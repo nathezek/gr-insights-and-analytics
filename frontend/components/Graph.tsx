@@ -115,7 +115,7 @@ const Graph = ({ data, layout, title, height = 300, turns = [], mistakes = [], y
             <Plot
                 data={plotData}
                 layout={defaultLayout}
-                config={{ responsive: true, displayModeBar: false }}
+                config={{ responsive: true, displayModeBar: true }}
                 style={{ width: '100%', height: '100%' }}
             />
         </div>

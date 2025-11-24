@@ -71,9 +71,9 @@ export default function DashboardPage() {
             });
     }, [sessionId, selectedLap]);
 
-    // Load mistake analysis when switching to mistakes tab
+    // Load mistake analysis when switching to mistakes tab or changing lap
     useEffect(() => {
-        if (activeTab === 'mistakes' && sessionId && selectedLap !== null && !mistakeAnalysis) {
+        if (activeTab === 'mistakes' && sessionId && selectedLap !== null) {
             setLoadingMistakes(true);
             getMistakeAnalysis(sessionId, selectedLap)
                 .then(response => {
@@ -85,7 +85,7 @@ export default function DashboardPage() {
                     setLoadingMistakes(false);
                 });
         }
-    }, [activeTab, sessionId, selectedLap, mistakeAnalysis]);
+    }, [activeTab, sessionId, selectedLap]);
 
     if (loading) {
         return (
@@ -402,40 +402,42 @@ export default function DashboardPage() {
                                     </div>
 
                                     {/* Speed Error Heatmap */}
-                                    {mistakeAnalysis.mistake_points && mistakeAnalysis.mistake_points.length > 0 && (
+                                    {mistakeAnalysis.full_lap_data && mistakeAnalysis.full_lap_data.length > 0 && (
                                         <div className="bg-[#242324] border border-[#2C2C2B] rounded-lg p-6">
                                             <h3 className="text-lg font-semibold mb-4">Speed Error Analysis</h3>
                                             <Plot
                                                 data={[
                                                     {
-                                                        x: mistakeAnalysis.mistake_points.map((p: any) => p.Laptrigger_lapdist_dls),
-                                                        y: mistakeAnalysis.mistake_points.map((p: any) => p.predicted_speed),
+                                                        x: mistakeAnalysis.full_lap_data.map((p: any) => p.Laptrigger_lapdist_dls),
+                                                        y: mistakeAnalysis.full_lap_data.map((p: any) => p.predicted_speed),
                                                         mode: 'lines',
                                                         name: 'AI Expected Speed',
                                                         line: { color: '#22c55e', dash: 'dash', width: 2 },
-                                                        type: 'scatter'
+                                                        type: 'scatter',
+                                                        hovertemplate: '<b>Expected:</b> %{y:.1f} km/h<br><b>Distance:</b> %{x:.0f}m<extra></extra>'
                                                     },
                                                     {
-                                                        x: mistakeAnalysis.mistake_points.map((p: any) => p.Laptrigger_lapdist_dls),
-                                                        y: mistakeAnalysis.mistake_points.map((p: any) => p.speed),
+                                                        x: mistakeAnalysis.full_lap_data.map((p: any) => p.Laptrigger_lapdist_dls),
+                                                        y: mistakeAnalysis.full_lap_data.map((p: any) => p.speed),
                                                         mode: 'lines',
                                                         name: 'Actual Speed',
                                                         line: { color: '#3b82f6', width: 2 },
-                                                        type: 'scatter'
+                                                        type: 'scatter',
+                                                        hovertemplate: '<b>Actual:</b> %{y:.1f} km/h<br><b>Distance:</b> %{x:.0f}m<extra></extra>'
                                                     },
-                                                    {
+                                                    ...(mistakeAnalysis.mistake_points && mistakeAnalysis.mistake_points.length > 0 ? [{
                                                         x: mistakeAnalysis.mistake_points.map((p: any) => p.Laptrigger_lapdist_dls),
                                                         y: mistakeAnalysis.mistake_points.map((p: any) => p.speed_error),
-                                                        mode: 'markers',
-                                                        name: 'Mistakes',
+                                                        mode: 'markers' as const,
+                                                        name: 'Speed Error',
                                                         marker: {
-                                                            size: 8,
+                                                            size: 6,
                                                             color: mistakeAnalysis.mistake_points.map((p: any) => p.speed_error),
                                                             colorscale: [
                                                                 [0, '#ef4444'],
                                                                 [0.5, '#fbbf24'],
                                                                 [1, '#22c55e']
-                                                            ],
+                                                            ] as [number, string][],
                                                             showscale: true,
                                                             colorbar: {
                                                                 title: { text: 'Error (km/h)' },
@@ -443,9 +445,10 @@ export default function DashboardPage() {
                                                                 len: 0.7
                                                             }
                                                         },
-                                                        type: 'scatter',
-                                                        yaxis: 'y2'
-                                                    }
+                                                        type: 'scatter' as const,
+                                                        yaxis: 'y2',
+                                                        hovertemplate: '<b>Error:</b> %{y:.1f} km/h<br><b>Distance:</b> %{x:.0f}m<extra></extra>'
+                                                    }] : [])
                                                 ]}
                                                 layout={{
                                                     paper_bgcolor: '#242324',

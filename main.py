@@ -364,11 +364,26 @@ async def get_mistake_analysis(session_id: str, lap_number: int):
         # Filter to only rows with mistakes for visualization
         mistakes_df = lap_df[lap_df['mistake_type'] != 'OK'].copy() if 'mistake_type' in lap_df.columns else pd.DataFrame()
         
-        # Convert to JSON-friendly format
+        # Convert mistake points to JSON-friendly format
         mistake_points = []
         if not mistakes_df.empty:
             mistake_points = json.loads(
                 mistakes_df[['Laptrigger_lapdist_dls', 'speed', 'predicted_speed', 'speed_error', 'mistake_type', 'mistake_severity']]
+                .to_json(orient="records")
+            )
+        
+        # Also send full lap data for continuous speed lines
+        full_lap_data = []
+        if 'Laptrigger_lapdist_dls' in lap_df.columns and 'speed' in lap_df.columns and 'predicted_speed' in lap_df.columns:
+            # Downsample for frontend (max 2000 points for smooth lines)
+            if len(lap_df) > 2000:
+                step = len(lap_df) // 2000
+                sampled_df = lap_df.iloc[::step].copy()
+            else:
+                sampled_df = lap_df.copy()
+            
+            full_lap_data = json.loads(
+                sampled_df[['Laptrigger_lapdist_dls', 'speed', 'predicted_speed']]
                 .to_json(orient="records")
             )
         
@@ -394,7 +409,8 @@ async def get_mistake_analysis(session_id: str, lap_number: int):
                 "max_error_kmh": max_error
             },
             "feature_importance": feature_importance[:10],  # Top 10 features
-            "mistake_points": mistake_points,
+            "full_lap_data": full_lap_data,  # Full lap for continuous lines
+            "mistake_points": mistake_points,  # Only mistakes for highlighting
             "has_data": True
         }
         
