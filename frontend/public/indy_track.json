@@ -1,0 +1,123 @@
+{
+  "track_name": "Indianapolis Motor Speedway (Road Course)",
+  "source_pdf": "Indy_Circuit_Map.pdf",
+  "length_m": 3925.2144,
+  "sectors": {
+    "S1": {
+      "length_m": 1364.2848,
+      "start_m": 0.0,
+      "end_m": 1364.2848
+    },
+    "S2": {
+      "length_m": 1386.9416,
+      "start_m": 1364.2848,
+      "end_m": 2751.2264
+    },
+    "S3": {
+      "length_m": 1173.988,
+      "start_m": 2751.2264,
+      "end_m": 3925.2144
+    }
+  },
+  "gps": {
+    "finish_line": {
+      "lat": 39.7931499,
+      "lon": -86.23887
+    },
+    "pit_in": {
+      "lat": 39.78941,
+      "lon": -86.2373
+    },
+    "pit_out": {
+      "lat": 39.79669,
+      "lon": -86.23881
+    }
+  },
+  "pit": {
+    "pit_time_seconds": 63,
+    "pit_in_to_out_m": 865.4288,
+    "pit_in_from_sf_m": 3415.3094
+  },
+  "recommended_resample_m": 1.0,
+  "corners": [
+    {
+      "turn": 1,
+      "notes": ""
+    },
+    {
+      "turn": 2,
+      "notes": ""
+    },
+    {
+      "turn": 3,
+      "notes": ""
+    },
+    {
+      "turn": 4,
+      "notes": ""
+    },
+    {
+      "turn": 5,
+      "notes": ""
+    },
+    {
+      "turn": 6,
+      "notes": ""
+    },
+    {
+      "turn": 7,
+      "notes": ""
+    },
+    {
+      "turn": 8,
+      "notes": ""
+    },
+    {
+      "turn": 9,
+      "notes": ""
+    },
+    {
+      "turn": 10,
+      "notes": ""
+    },
+    {
+      "turn": 11,
+      "notes": ""
+    },
+    {
+      "turn": 12,
+      "notes": ""
+    },
+    {
+      "turn": 13,
+      "notes": ""
+    },
+    {
+      "turn": 14,
+      "notes": ""
+    },
+    {
+      "turn": 15,
+      "notes": ""
+    },
+    {
+      "turn": 16,
+      "notes": ""
+    },
+    {
+      "turn": 17,
+      "notes": ""
+    },
+    {
+      "turn": 18,
+      "notes": ""
+    },
+    {
+      "turn": 19,
+      "notes": ""
+    }
+  ],
+  "centerline_xy": null,
+  "curvature_table": null,
+  "notes": "All values derived from supplied Indy Circuit Map PDF. Centerline and curvature would require VBOX GPS or CAD."
+}

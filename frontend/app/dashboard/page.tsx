@@ -488,6 +488,133 @@ export default function DashboardPage() {
                                         </div>
                                     )}
 
+                                    {/* Track Heat-Map */}
+                                    {mistakeAnalysis.full_lap_data && mistakeAnalysis.full_lap_data.length > 0 && (
+                                        <div className="bg-[#242324] border border-[#2C2C2B] rounded-lg p-6">
+                                            <h3 className="text-lg font-semibold mb-4">Track Heat-Map</h3>
+                                            <p className="text-sm text-neutral-400 mb-6">
+                                                Speed errors visualized on the track layout
+                                            </p>
+                                            <Plot
+                                                data={[
+                                                    // Track centerline (all points)
+                                                    {
+                                                        x: mistakeAnalysis.full_lap_data
+                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
+                                                            .map((p: any) => p.VBOX_Long_Minutes),
+                                                        y: mistakeAnalysis.full_lap_data
+                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
+                                                            .map((p: any) => p.VBOX_Lat_Min),
+                                                        mode: 'lines' as const,
+                                                        name: 'Track',
+                                                        line: {
+                                                            color: '#4b5563',
+                                                            width: 8
+                                                        },
+                                                        type: 'scatter' as const,
+                                                        hoverinfo: 'skip',
+                                                        showlegend: false
+                                                    },
+                                                    // Speed error heat-map overlay
+                                                    {
+                                                        x: mistakeAnalysis.full_lap_data
+                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
+                                                            .map((p: any) => p.VBOX_Long_Minutes),
+                                                        y: mistakeAnalysis.full_lap_data
+                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
+                                                            .map((p: any) => p.VBOX_Lat_Min),
+                                                        mode: 'markers' as const,
+                                                        name: 'Speed Error',
+                                                        marker: {
+                                                            size: 8,
+                                                            color: mistakeAnalysis.full_lap_data
+                                                                .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
+                                                                .map((p: any) => {
+                                                                    const error = p.speed - p.predicted_speed;
+                                                                    return error;
+                                                                }),
+                                                            colorscale: [
+                                                                [0, '#ef4444'],      // Red for too slow
+                                                                [0.5, '#fbbf24'],    // Yellow for slight error
+                                                                [1, '#22c55e']       // Green for too fast
+                                                            ] as [number, string][],
+                                                            showscale: true,
+                                                            colorbar: {
+                                                                title: { text: 'Speed Error<br>(km/h)' },
+                                                                thickness: 20,
+                                                                len: 0.7,
+                                                                x: 1.02
+                                                            },
+                                                            cmin: -20,
+                                                            cmax: 20
+                                                        },
+                                                        type: 'scatter' as const,
+                                                        hovertemplate: '<b>Error:</b> %{marker.color:.1f} km/h<br><b>Lat:</b> %{y:.6f}<br><b>Lon:</b> %{x:.6f}<extra></extra>'
+                                                    },
+                                                    // Mistake markers (highlight major errors)
+                                                    ...(mistakeAnalysis.mistake_points && mistakeAnalysis.mistake_points.length > 0 ? [{
+                                                        x: mistakeAnalysis.mistake_points
+                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
+                                                            .map((p: any) => p.VBOX_Long_Minutes),
+                                                        y: mistakeAnalysis.mistake_points
+                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
+                                                            .map((p: any) => p.VBOX_Lat_Min),
+                                                        mode: 'markers' as const,
+                                                        name: 'Major Mistakes',
+                                                        marker: {
+                                                            size: 14,
+                                                            color: '#dc2626',
+                                                            symbol: 'x',
+                                                            line: {
+                                                                color: '#fff',
+                                                                width: 2
+                                                            }
+                                                        },
+                                                        type: 'scatter' as const,
+                                                        hovertemplate: '<b>Major Mistake</b><br><b>Error:</b> %{text}<extra></extra>',
+                                                        text: mistakeAnalysis.mistake_points
+                                                            .filter((p: any) => p.VBOX_Long_Minutes !== undefined && p.VBOX_Lat_Min !== undefined)
+                                                            .map((p: any) => `${p.speed_error?.toFixed(1) || 'N/A'} km/h`)
+                                                    }] : [])
+                                                ]}
+                                                layout={{
+                                                    paper_bgcolor: '#242324',
+                                                    plot_bgcolor: '#191818',
+                                                    font: { color: '#fafafa' },
+                                                    height: 600,
+                                                    margin: { l: 60, r: 100, t: 40, b: 60 },
+                                                    xaxis: {
+                                                        title: { text: 'Longitude' },
+                                                        gridcolor: '#2C2C2B',
+                                                        color: '#fafafa',
+                                                        scaleanchor: 'y',
+                                                        scaleratio: 1
+                                                    },
+                                                    yaxis: {
+                                                        title: { text: 'Latitude' },
+                                                        gridcolor: '#2C2C2B',
+                                                        color: '#fafafa'
+                                                    },
+                                                    legend: {
+                                                        x: 0.01,
+                                                        y: 0.99,
+                                                        bgcolor: 'rgba(36, 35, 36, 0.8)',
+                                                        bordercolor: '#2C2C2B',
+                                                        borderwidth: 1
+                                                    },
+                                                    hovermode: 'closest',
+                                                    dragmode: 'pan'
+                                                }}
+                                                config={{
+                                                    responsive: true,
+                                                    displayModeBar: true,
+                                                    modeBarButtonsToRemove: ['lasso2d', 'select2d']
+                                                }}
+                                                style={{ width: '100%' }}
+                                            />
+                                        </div>
+                                    )}
+
                                     {/* Top Contributing Features */}
                                     {mistakeAnalysis.feature_importance && mistakeAnalysis.feature_importance.length > 0 && (
                                         <div className="bg-[#242324] border border-[#2C2C2B] rounded-lg p-6">

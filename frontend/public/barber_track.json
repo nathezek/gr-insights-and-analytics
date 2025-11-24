@@ -1,0 +1,107 @@
+{
+  "track_name": "Barber Motorsports Park",
+  "source_pdf": "Barber_Circuit_Map.pdf",
+  "length_m": 3678.65,
+  "sectors": {
+    "S1": {
+      "length_m": 1028.99,
+      "start_m": 0.0,
+      "end_m": 1028.99
+    },
+    "S2": {
+      "length_m": 1580.39,
+      "start_m": 1028.99,
+      "end_m": 2609.38
+    },
+    "S3": {
+      "length_m": 1064.63,
+      "start_m": 2609.38,
+      "end_m": 3674.01
+    }
+  },
+  "gps": {
+    "finish_line": {
+      "lat": 33.5326722,
+      "lon": -86.6196083
+    },
+    "pit_in": {
+      "lat": 33.531077,
+      "lon": -86.622592
+    },
+    "pit_out": {
+      "lat": 33.531111,
+      "lon": -86.622526
+    }
+  },
+  "pit": {
+    "pit_time_seconds": 34,
+    "pit_in_to_out_m": 477.99,
+    "pit_in_from_sf_m": 3334.86
+  },
+  "recommended_resample_m": 1.0,
+  "corners": [
+    {
+      "turn": 1,
+      "notes": ""
+    },
+    {
+      "turn": 2,
+      "notes": ""
+    },
+    {
+      "turn": 3,
+      "notes": ""
+    },
+    {
+      "turn": 4,
+      "notes": ""
+    },
+    {
+      "turn": 5,
+      "notes": ""
+    },
+    {
+      "turn": 6,
+      "notes": ""
+    },
+    {
+      "turn": 7,
+      "notes": ""
+    },
+    {
+      "turn": 8,
+      "notes": ""
+    },
+    {
+      "turn": 9,
+      "notes": ""
+    },
+    {
+      "turn": 10,
+      "notes": ""
+    },
+    {
+      "turn": 11,
+      "notes": ""
+    },
+    {
+      "turn": 12,
+      "notes": ""
+    },
+    {
+      "turn": 13,
+      "notes": ""
+    },
+    {
+      "turn": 14,
+      "notes": ""
+    },
+    {
+      "turn": 15,
+      "notes": ""
+    }
+  ],
+  "centerline_xy": null,
+  "curvature_table": null,
+  "notes": "All values derived from supplied Barber_Circuit_Map PDF. Centerline and curvature would require VBOX GPS or CAD."
+}

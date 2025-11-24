@@ -1,0 +1,65 @@
+{
+  "track_name": "Sebring International Raceway",
+  "source_pdf": "Sebring_Track_Sector_Map.pdf",
+  "length_m": 6018.9,
+  "sectors": {
+    "S1": {
+      "length_m": 1824.2,
+      "start_m": 0.0,
+      "end_m": 1824.2
+    },
+    "S2": {
+      "length_m": 1863.7,
+      "start_m": 1824.2,
+      "end_m": 3687.9
+    },
+    "S3": {
+      "length_m": 2331.0,
+      "start_m": 3687.9,
+      "end_m": 6018.9
+    }
+  },
+  "gps": {
+    "finish_line": {
+      "lat": 27.450234,
+      "lon": -81.353698
+    },
+    "pit_in": {
+      "lat": 27.45012,
+      "lon": -81.35547
+    },
+    "pit_out": {
+      "lat": 27.45011,
+      "lon": -81.35051
+    }
+  },
+  "pit": {
+    "pit_time_seconds": 39,
+    "pit_in_to_out_m": 542.3,
+    "pit_in_from_sf_m": 5842.2,
+    "pit_out_from_sf_m": 365.2
+  },
+  "recommended_resample_m": 1.0,
+  "corners": [
+    { "turn": 1, "notes": "" },
+    { "turn": 2, "notes": "" },
+    { "turn": 3, "notes": "" },
+    { "turn": 4, "notes": "" },
+    { "turn": 5, "notes": "" },
+    { "turn": 6, "notes": "" },
+    { "turn": 7, "notes": "" },
+    { "turn": 8, "notes": "" },
+    { "turn": 9, "notes": "" },
+    { "turn": 10, "notes": "" },
+    { "turn": 11, "notes": "" },
+    { "turn": 12, "notes": "" },
+    { "turn": 13, "notes": "" },
+    { "turn": 14, "notes": "" },
+    { "turn": 15, "notes": "" },
+    { "turn": 16, "notes": "" },
+    { "turn": 17, "notes": "" }
+  ],
+  "centerline_xy": null,
+  "curvature_table": null,
+  "notes": "All values sourced directly from the 2025 SRO Sebring Track Sector Map PDF."
+}
