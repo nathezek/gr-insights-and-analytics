@@ -1,27 +1,25 @@
 import axios from 'axios';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+
 const api = axios.create({
-    baseURL: 'http://127.0.0.1:8000',
+    baseURL: API_BASE_URL,
 });
 
-export const uploadFile = (file: File, onProgress?: (progress: number) => void) => {
+export const uploadFile = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
 
-    return api.post('/upload', formData, {
+    const response = await axios.post(`${API_BASE_URL}/upload`, formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
         },
-        onUploadProgress: (progressEvent) => {
-            if (progressEvent.total && onProgress) {
-                const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-                onProgress(percentCompleted);
-            }
-        },
     });
+
+    return response.data;
 };
 
-export const uploadSession = (
+export async function uploadSession(
     files: {
         lap_start: File;
         lap_end: File;
@@ -29,36 +27,46 @@ export const uploadSession = (
         telemetry: File;
     },
     onProgress?: (progress: number) => void
-) => {
+) {
     const formData = new FormData();
     formData.append('lap_start', files.lap_start);
     formData.append('lap_end', files.lap_end);
     formData.append('lap_time', files.lap_time);
     formData.append('telemetry', files.telemetry);
 
-    return api.post('/upload-session', formData, {
+    const response = await axios.post(`${API_BASE_URL}/upload-session`, formData, {
         headers: {
             'Content-Type': 'multipart/form-data',
         },
         onUploadProgress: (progressEvent) => {
-            if (progressEvent.total && onProgress) {
+            if (onProgress && progressEvent.total) {
                 const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
                 onProgress(percentCompleted);
             }
         },
     });
-};
 
-export const getSessionLaps = (sessionId: string) => {
-    return api.get(`/session/${sessionId}/laps`);
-};
+    return response;
+}
 
-export const getLapData = (sessionId: string, lapNumber: number) => {
-    return api.get(`/session/${sessionId}/lap/${lapNumber}`);
-};
+export async function getSessionLaps(sessionId: string) {
+    const response = await axios.get(`${API_BASE_URL}/session/${sessionId}/laps`);
+    return response;
+}
 
-export const getSessionMetadata = (sessionId: string) => {
-    return api.get(`/session/${sessionId}/laps`);
-};
+export async function getLapData(sessionId: string, lapNumber: number) {
+    const response = await axios.get(`${API_BASE_URL}/session/${sessionId}/lap/${lapNumber}`);
+    return response;
+}
+
+export async function getSessionMetadata(sessionId: string) {
+    const response = await axios.get(`${API_BASE_URL}/session/${sessionId}/laps`);
+    return response;
+}
+
+export async function getMistakeAnalysis(sessionId: string, lapNumber: number) {
+    const response = await axios.get(`${API_BASE_URL}/session/${sessionId}/lap/${lapNumber}/mistake-analysis`);
+    return response;
+}
 
 export default api;

@@ -324,6 +324,85 @@ async def get_lap_data(session_id: str, lap_number: int):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/session/{session_id}/lap/{lap_number}/mistake-analysis")
+async def get_mistake_analysis(session_id: str, lap_number: int):
+    """Get mistake analysis data including feature importance for a specific lap"""
+    try:
+        session_dir = DATA_DIR / session_id
+        lap_file = session_dir / f"lap_{lap_number}.parquet"
+        
+        if not lap_file.exists():
+            raise HTTPException(status_code=404, detail=f"Lap {lap_number} not found in session {session_id}")
+        
+        # Read lap data
+        lap_df = pd.read_parquet(lap_file)
+        
+        # Check if mistake analysis data exists
+        required_cols = ['predicted_speed', 'speed_error', 'mistake_type']
+        has_mistake_data = all(col in lap_df.columns for col in required_cols)
+        
+        if not has_mistake_data:
+            raise HTTPException(
+                status_code=400, 
+                detail="Mistake analysis data not available for this lap. Please re-upload the session."
+            )
+        
+        # Get feature importance from model
+        feature_importance = []
+        if model and hasattr(model, 'feature_importances_') and metadata:
+            features = metadata.get('features', [])
+            if features:
+                importances = model.feature_importances_
+                feature_importance = [
+                    {"feature": feat, "importance": float(imp)}
+                    for feat, imp in zip(features, importances)
+                ]
+                # Sort by importance descending
+                feature_importance.sort(key=lambda x: x['importance'], reverse=True)
+        
+        # Prepare mistake analysis data
+        # Filter to only rows with mistakes for visualization
+        mistakes_df = lap_df[lap_df['mistake_type'] != 'OK'].copy() if 'mistake_type' in lap_df.columns else pd.DataFrame()
+        
+        # Convert to JSON-friendly format
+        mistake_points = []
+        if not mistakes_df.empty:
+            mistake_points = json.loads(
+                mistakes_df[['Laptrigger_lapdist_dls', 'speed', 'predicted_speed', 'speed_error', 'mistake_type', 'mistake_severity']]
+                .to_json(orient="records")
+            )
+        
+        # Calculate statistics
+        total_points = len(lap_df)
+        mistake_count = len(mistakes_df)
+        too_slow_count = len(lap_df[lap_df['mistake_type'] == 'TOO_SLOW']) if 'mistake_type' in lap_df.columns else 0
+        too_fast_count = len(lap_df[lap_df['mistake_type'] == 'TOO_FAST']) if 'mistake_type' in lap_df.columns else 0
+        
+        avg_error = float(lap_df['abs_error'].mean()) if 'abs_error' in lap_df.columns else 0
+        max_error = float(lap_df['abs_error'].max()) if 'abs_error' in lap_df.columns else 0
+        
+        return {
+            "session_id": session_id,
+            "lap": lap_number,
+            "statistics": {
+                "total_points": total_points,
+                "mistake_count": mistake_count,
+                "mistake_percentage": (mistake_count / total_points * 100) if total_points > 0 else 0,
+                "too_slow_count": too_slow_count,
+                "too_fast_count": too_fast_count,
+                "avg_error_kmh": avg_error,
+                "max_error_kmh": max_error
+            },
+            "feature_importance": feature_importance[:10],  # Top 10 features
+            "mistake_points": mistake_points,
+            "has_data": True
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/")
 def read_root():
     return {"status": "ok", "service": "Gazoo Analyst Backend"}
