@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, LucideTrash, LucideTrash2 } from 'lucide-react';
 import { uploadSession } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 import ProgressBar from '@/components/ProgressBar';
@@ -96,8 +96,8 @@ export default function UploadPage() {
             <div className="flex items-center gap-3">
                 <label className="flex-1 cursor-pointer">
                     <div className={`border-2 border-dashed rounded-lg p-4 text-center transition-colors ${files[fileType]
-                            ? 'border-green-500 bg-green-500/10'
-                            : 'border-[#2C2C2B] hover:border-red-500/50'
+                        ? 'border-green-500 bg-green-500/10'
+                        : 'border-[#2C2C2B] hover:border-red-500/50'
                         }`}>
                         {files[fileType] ? (
                             <div className="flex items-center justify-center gap-2 text-green-500">
@@ -124,9 +124,9 @@ export default function UploadPage() {
                 {files[fileType] && (
                     <button
                         onClick={() => handleFileChange(fileType, null)}
-                        className="px-3 py-2 text-sm text-red-400 hover:text-red-300 border border-red-500/30 rounded-md"
+                        className="px-3 py-2 text-sm text-red-400 cursor-pointer hover:text-red-300 border border-red-500/30 rounded-md"
                     >
-                        Clear
+                        <LucideTrash2 size={18} />
                     </button>
                 )}
             </div>
@@ -187,8 +187,8 @@ export default function UploadPage() {
                     onClick={handleUpload}
                     disabled={!allFilesSelected || uploading}
                     className={`flex-1 py-3 px-6 rounded-lg font-medium flex items-center justify-center gap-2 transition-colors ${allFilesSelected && !uploading
-                            ? 'bg-red-600 hover:bg-red-700 text-white'
-                            : 'bg-gray-700 text-gray-400 cursor-not-allowed'
+                        ? 'bg-red-600 hover:bg-red-700 text-white'
+                        : 'bg-gray-700 text-gray-400 cursor-not-allowed'
                         }`}
                 >
                     <Upload size={20} />

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
+import { ArrowUp, ArrowDown } from 'lucide-react';
 import Graph from '@/components/Graph';
 import { useRouter } from 'next/navigation';
 import { getSessionLaps, getLapData } from '@/lib/api';
@@ -220,16 +221,27 @@ export default function DashboardPage() {
 
             {/* Insights Section */}
             {insights.length > 0 && (
-                <div className="bg-[#242324] border border-[#2C2C2B] rounded-lg p-4">
-                    <h2 className="text-lg font-semibold mb-3">AI Insights</h2>
-                    <ul className="space-y-2">
-                        {insights.map((insight, idx) => (
-                            <li key={idx} className="text-sm text-gray-300 flex items-start gap-2">
-                                <span className="text-yellow-500 mt-1">⚠️</span>
-                                <span>{insight}</span>
-                            </li>
-                        ))}
-                    </ul>
+                <div className="bg-[#242324] border border-[#2C2C2B] rounded-lg p-6">
+                    <h2 className="text-lg font-semibold mb-4">AI Insights</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        {insights.map((insight, idx) => {
+                            // Parse insight to determine icon and color
+                            const isNegative = insight.includes('too slow') ||
+                                insight.includes('below expected') ||
+                                insight.includes('mistakes detected') ||
+                                insight.includes('mistake rate');
+                            const isPositive = insight.includes('too fast') ||
+                                insight.includes('above expected');
+
+                            return (
+                                <div key={idx} className="flex items-center gap-2">
+                                    {isNegative && <ArrowDown size={16} className="text-red-500 flex-shrink-0" />}
+                                    {isPositive && <ArrowUp size={16} className="text-green-500 flex-shrink-0" />}
+                                    <span className="text-sm text-neutral-200">{insight}</span>
+                                </div>
+                            );
+                        })}
+                    </div>
                 </div>
             )}
 

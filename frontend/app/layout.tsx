@@ -3,7 +3,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 
 export const metadata: Metadata = {
-    title: "Gazoo Analyst",
+    title: "GR Insights",
     description: "AI-Powered Race Analysis",
 };
 
