@@ -57,14 +57,36 @@ async def upload_file(file: UploadFile = File(...)):
                     print(f"Retaining {len(valid_laps)} valid laps: {list(valid_laps)}")
                     predicted_df = predicted_df[predicted_df['lap'].isin(valid_laps)].copy()
             
+            # Normalize lap distance to start from 0 for each lap
+            if 'lap' in predicted_df.columns and 'Laptrigger_lapdist_dls' in predicted_df.columns:
+                def normalize_distance(group):
+                    group = group.copy()
+                    group['Laptrigger_lapdist_dls'] = group['Laptrigger_lapdist_dls'] - group['Laptrigger_lapdist_dls'].min()
+                    return group
+                
+                predicted_df = predicted_df.groupby('lap', group_keys=False).apply(normalize_distance, include_groups=False)
+            
             # Downsample for frontend visualization (Limit to 8k points)
             # Reduced to 8k to stay under localStorage limit (~5MB) while supporting 2-3 laps
             MAX_FRONTEND_POINTS = 8000
             if len(predicted_df) > MAX_FRONTEND_POINTS:
-                predicted_df = predicted_df.sort_values(['lap', 'Laptrigger_lapdist_dls'])
-                # Use systematic sampling instead of random to preserve line shape
-                step = len(predicted_df) // MAX_FRONTEND_POINTS
-                predicted_df = predicted_df.iloc[::step].iloc[:MAX_FRONTEND_POINTS]
+                # Use uniform sampling per lap to maintain even distribution
+                if 'lap' in predicted_df.columns:
+                    sampled_laps = []
+                    for lap_num in predicted_df['lap'].unique():
+                        lap_data = predicted_df[predicted_df['lap'] == lap_num].sort_values('Laptrigger_lapdist_dls')
+                        # Calculate points per lap proportionally
+                        lap_points = int((len(lap_data) / len(predicted_df)) * MAX_FRONTEND_POINTS)
+                        if lap_points > 0 and len(lap_data) > lap_points:
+                            step = len(lap_data) // lap_points
+                            sampled_laps.append(lap_data.iloc[::step].iloc[:lap_points])
+                        else:
+                            sampled_laps.append(lap_data)
+                    predicted_df = pd.concat(sampled_laps, ignore_index=True)
+                else:
+                    predicted_df = predicted_df.sort_values('Laptrigger_lapdist_dls')
+                    step = len(predicted_df) // MAX_FRONTEND_POINTS
+                    predicted_df = predicted_df.iloc[::step].iloc[:MAX_FRONTEND_POINTS]
             
             # Convert to JSON-friendly format (Handle NaN/Inf)
             # Use pandas to_json which handles NaNs correctly (converts to null)

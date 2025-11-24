@@ -118,17 +118,22 @@ export default function DashboardPage() {
         line: { color: '#9467bd', width: 2 }
     };
 
-    // Placeholder turn data for Barber Motorsports Park (approximate distances in meters)
-    // User can adjust these values based on their specific telemetry
+    // Turn data for Barber Motorsports Park (distances in meters, ~3.8km track)
+    // Adjusted based on actual track layout
     const barberTurns = [
-        { name: 'T1', start: 200, end: 350 },
-        { name: 'T2', start: 600, end: 750 },
-        { name: 'T3', start: 1100, end: 1200 },
-        { name: 'T4', start: 1900, end: 2100 },
-        { name: 'T5', start: 2300, end: 2500 },
-        { name: 'T6', start: 2900, end: 3100 },
-        { name: 'T7', start: 3300, end: 3500 },
-        { name: 'T8', start: 3800, end: 4000 },
+        { name: 'T1', start: 50, end: 200 },      // Fast downhill left
+        { name: 'T2', start: 350, end: 480 },     // Right hander
+        { name: 'T3', start: 650, end: 780 },     // Left
+        { name: 'T4', start: 950, end: 1080 },    // Right
+        { name: 'T5', start: 1200, end: 1380 },   // Charlotte's Web (left)
+        { name: 'T6', start: 1380, end: 1500 },   // Right after T5
+        { name: 'T7', start: 1650, end: 1800 },   // Museum section entry
+        { name: 'T8', start: 1950, end: 2050 },   // Not much of a corner
+        { name: 'T9', start: 2150, end: 2300 },   // Sharp downhill right
+        { name: 'T10', start: 2600, end: 2750 },  // Uphill chicane left
+        { name: 'T11', start: 2750, end: 2900 },  // Uphill chicane right
+        { name: 'T12', start: 3100, end: 3250 },  // Left before straight
+        { name: 'T13', start: 3450, end: 3600 },  // Final corner
     ];
 
     return (
