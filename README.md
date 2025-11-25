@@ -64,16 +64,13 @@ Advanced telemetry analysis dashboard for race engineers. Identify mistakes, opt
 
 🎞️ Preview
 
-[https://github.com/user-
-
-
-
-attachments/assets/your-video-id-here](https://github.com/user-attachments/assets/7c141523-6789-4e4b-a21c-c77bea1fb401)
+[https://github.com/user-attachments/assets/your-video-id-here](https://github.com/user-attachments/assets/7c141523-6789-4e4b-a21c-c77bea1fb401)
 
 <!-- For local viewing: -->
 <video width="100%" controls>
   <source src="./frontend/public/video.mp4" type="video/mp4">
   Your browser does not support the video tag.
 </video>
+
 
 
