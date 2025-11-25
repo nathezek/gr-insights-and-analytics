@@ -63,5 +63,12 @@ Advanced telemetry analysis dashboard for race engineers. Identify mistakes, opt
    Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 🎞️ Preview
-<video src="../frontend/public/video.mp4" />
+
+https://github.com/user-attachments/assets/your-video-id-here
+
+<!-- For local viewing: -->
+<video width="100%" controls>
+  <source src="./frontend/public/video.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
 
