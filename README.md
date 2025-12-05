@@ -35,7 +35,7 @@ Advanced telemetry analysis dashboard for race engineers. Identify mistakes, opt
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
+   git clone [<repository-url>](https://github.com/nathezek/gr-insights-and-analytics/
    cd gr-insights-and-analytics
    ```
 
@@ -71,6 +71,7 @@ Advanced telemetry analysis dashboard for race engineers. Identify mistakes, opt
   <source src="./frontend/public/video.mp4" type="video/mp4">
   Your browser does not support the video tag.
 </video>
+
 
 
 
